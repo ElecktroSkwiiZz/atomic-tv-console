@@ -41,6 +41,7 @@ public final class MainActivity extends Activity {
   private LinearLayout results;
   private String lastCommand="",lastOutput="";
   private boolean lastOk;
+  private boolean workflowRunning=false;
 
   private String t(String fr,String en){return english?en:fr;}
   private int dp(float n){return (int)(getResources().getDisplayMetrics().density*n+0.5f);}
@@ -60,6 +61,7 @@ public final class MainActivity extends Activity {
   }
   @Override public void onDestroy(){client.close();super.onDestroy();}
   @Override public void onBackPressed(){
+    if(workflowRunning){toast(t("Une opération est encore en cours","An operation is still running"));return;}
     if(currentScreen==2){currentScreen=1;showBrowser(group);}
     else if(currentScreen==1)showHome();
     else super.onBackPressed();
@@ -168,6 +170,9 @@ public final class MainActivity extends Activity {
     space(page,6);
     LinearLayout tools=panel(page);
     tools.addView(text(t("OUTILS","TOOLS"),12,CYAN,true));space(tools,7);
+    action(tools,t("⚡  Actions groupées et diagnostics","⚡  Workflows and diagnostics"),true,this::showWorkflows);
+    action(tools,t("▣  Gérer les applications indésirables","▣  Manage unwanted apps"),false,()->showPackageSelection(false));
+    action(tools,t("↶  Réactiver des applications","↶  Restore disabled apps"),false,()->showPackageSelection(true));
     action(tools,t("⌘  Commande personnalisée","⌘  Custom command"),false,this::customCommand);
     action(tools,t("⚙  Connexion et port ADB","⚙  ADB connection and port"),false,this::settings);
     action(tools,t("↻  Rechercher une mise à jour","↻  Check for updates"),false,()->new UpdateManager(this).check());
@@ -246,8 +251,132 @@ public final class MainActivity extends Activity {
           .setPositiveButton(t("Lancer","Run"),(a,b)->runCommand(command,t("Commande personnalisée","Custom command"),true)).show();
       }).show();
   }
+  private void showWorkflows(){
+    currentScreen=1;group=null;initialize();quickBar();space(page,12);
+    page.addView(text(t("ACTIONS GROUPÉES","WORKFLOWS"),21,TEXT,true));space(page,7);
+    page.addView(text(t("Diagnostics en lecture seule ou réglages expliqués avant exécution.",
+      "Read-only diagnostics or settings explained before execution."),13,MUTED,false));space(page,13);
+    for(MaintenanceTasks.Task task:MaintenanceTasks.ALL){
+      LinearLayout entry=panel(page);
+      action(entry,task.title(english)+(task.changesSettings?"  ⚠":""),false,()->previewWorkflow(task));
+      entry.addView(text(task.description(english),12,MUTED,false));
+      space(page,8);
+    }
+    action(page,t("Gérer les applications de la TV","Manage installed TV applications"),true,()->showPackageSelection(false));
+  }
+  private void previewWorkflow(MaintenanceTasks.Task task){
+    StringBuilder preview=new StringBuilder(task.description(english)+"\\n\\n");
+    for(String command:task.commands)preview.append("adb shell ").append(command).append("\\n");
+    if(task.changesSettings)preview.append("\\n⚠ ").append(t(
+      "Ces réglages peuvent modifier le comportement de la TV. Vous pouvez les rétablir avec les actions correspondantes.",
+      "These settings can affect your TV. You can restore settings using the matching workflow."));
+    new AlertDialog.Builder(this).setTitle(task.title(english)).setMessage(preview.toString())
+      .setNegativeButton(t("Annuler","Cancel"),null)
+      .setPositiveButton(t("Exécuter","Run"),(d,w)->runWorkflow(task.title(english),task.commands)).show();
+  }
+  private void showPackageSelection(boolean restore){
+    if(workflowRunning || client.busy()){toast(t("Opération en cours","Operation in progress"));return;}
+    String cmd=restore?"pm list packages -d":"pm list packages -s";
+    currentScreen=2;initialize();quickBar();space(page,16);
+    page.addView(text(t("Analyse des applications…","Scanning installed apps…"),18,CYAN,true));
+    client.run(port,cmd,(ok,output)->{
+      if(!ok){lastCommand=cmd;lastOutput=output;lastOk=false;showOutput(t("Analyse impossible","Unable to scan apps"));return;}
+      java.util.List<String> items=MaintenanceTasks.parsePackages(output);
+      if(items.isEmpty()){
+        new AlertDialog.Builder(this).setTitle(t("Aucune application éligible","No eligible applications"))
+          .setMessage(t("Aucun paquet non protégé n'a été trouvé. Les composants critiques sont exclus de la sélection.",
+            "No unprotected package was found. Critical Android components are excluded."))
+          .setPositiveButton("OK",(d,n)->showHome()).show();
+        return;
+      }
+      showAppChooser(items,restore);
+    });
+  }
+  private void showAppChooser(java.util.List<String> items,boolean restore){
+    String[] names=items.toArray(new String[0]);
+    boolean[] checked=new boolean[names.length];
+    new AlertDialog.Builder(this)
+      .setTitle(restore?t("Réactiver des applications","Re-enable applications"):t("Applications système facultatives","Optional system applications"))
+      .setMessage(restore?
+        t("Sélectionnez les applications à réactiver. Les services essentiels ne sont pas proposés.",
+          "Select applications to re-enable. Essential services are excluded."):
+        t("Sélectionnez uniquement les applications que vous connaissez. Aucune sélection automatique. Les composants Android essentiels sont exclus.",
+          "Only select applications you recognize. Nothing is selected automatically. Essential Android components are excluded."))
+      .setMultiChoiceItems(names,checked,(d,which,isChecked)->checked[which]=isChecked)
+      .setNegativeButton(t("Annuler","Cancel"),(d,w)->showHome())
+      .setPositiveButton(t("Continuer","Continue"),(d,w)->{
+        java.util.List<String> selected=new java.util.ArrayList<>();
+        for(int i=0;i<names.length;i++)if(checked[i]&&!MaintenanceTasks.protectedPackage(names[i]))selected.add(names[i]);
+        if(selected.isEmpty()){toast(t("Aucune application sélectionnée","No application selected"));showHome();return;}
+        confirmApps(selected,restore);
+      }).show();
+  }
+  private void confirmApps(java.util.List<String> selected,boolean restore){
+    String title=restore?t("Confirmer la réactivation","Confirm re-enabling"):
+      t("Confirmer la désactivation","Confirm disabling");
+    String commandPrefix=restore?"pm enable --user 0 ":"pm disable-user --user 0 ";
+    StringBuilder preview=new StringBuilder();
+    preview.append(selected.size()).append(t(" application(s) sélectionnée(s):"," selected application(s):")).append("\\n\\n");
+    for(String name:selected)preview.append("• ").append(name).append("\\n");
+    preview.append("\\n").append(restore?
+      t("L'application tentera de restaurer ces paquets pour l'utilisateur principal.",
+        "The app will attempt to enable these packages for the primary user."):
+      t("Désactivation réversible, SANS désinstallation, SANS effacement des données. Une application peut cesser de fonctionner. Des dépendances constructeur peuvent empêcher l'opération.",
+        "Reversible disable, NO uninstall and NO data erasure. Some apps can stop working; OEM dependencies may reject changes."));
+    String[] commands=new String[selected.size()];
+    for(int i=0;i<selected.size();i++){
+      if(MaintenanceTasks.protectedPackage(selected.get(i))){toast(t("Paquet protégé","Protected package"));return;}
+      commands[i]=commandPrefix+selected.get(i);
+    }
+    new AlertDialog.Builder(this).setTitle(title).setMessage(preview.toString())
+      .setNegativeButton(t("Annuler","Cancel"),(d,w)->showHome())
+      .setPositiveButton(restore?t("Réactiver","Re-enable"):t("Désactiver","Disable"),
+        (d,w)->new AlertDialog.Builder(this)
+          .setTitle(t("Dernière confirmation","Final confirmation"))
+          .setMessage(t("Confirmez que vous avez examiné chaque paquet. Aucune action n'est automatique.",
+            "Confirm that you have reviewed every package. No automatic changes are made."))
+          .setNegativeButton(t("Retour","Back"),(a,b)->showHome())
+          .setPositiveButton(t("Je confirme","I confirm"),(a,b)->runWorkflow(title,commands)).show())
+      .show();
+  }
+  private void runWorkflow(String title,String[] commands){
+    if(workflowRunning || client.busy()){toast(t("Opération en cours","Operation in progress"));return;}
+    if(commands.length==0 || commands.length>25){toast(t("Nombre de commandes invalide","Invalid command count"));return;}
+    workflowRunning=true;
+    currentScreen=2;initialize();quickBar();space(page,12);
+    TextView status=text(t("Démarrage…","Starting…"),17,CYAN,true);
+    page.addView(status);space(page,8);
+    StringBuilder report=new StringBuilder();
+    runWorkflowStep(title,commands,0,report,status);
+  }
+  private void runWorkflowStep(String title,String[] commands,int index,StringBuilder report,TextView status){
+    if(index>=commands.length){
+      workflowRunning=false;lastOk=true;lastCommand=t("Action groupée","Workflow");
+      lastOutput=report.toString();showOutput(title);return;
+    }
+    String raw=commands[index];
+    status.setText((index+1)+"/"+commands.length+"  ·  "+raw);
+    // Append an exit status to detect commands that fail without a transport error.
+    String checked=raw+"; echo ATOMIC_EXIT_CODE:$?";
+    client.run(port,checked,(ok,output)->{
+      boolean exitOk=ok&&output.contains("ATOMIC_EXIT_CODE:0");
+      String clean=output.replaceAll("ATOMIC_EXIT_CODE:[0-9]+","").trim();
+      report.append("\\n[").append(index+1).append("/").append(commands.length).append("] $ adb shell ")
+        .append(raw).append("\\n").append(clean).append("\\n");
+      if(report.length()>42000)report.delete(0,report.length()-42000);
+      if(!exitOk){
+        workflowRunning=false;lastOk=false;lastCommand=t("Action groupée arrêtée","Workflow stopped");
+        lastOutput=report.toString()+"\\n"+t(
+          "Interruption après une commande refusée ou une erreur ADB. Les étapes précédentes peuvent avoir été appliquées.",
+          "Stopped after a command error or ADB failure. Previous steps may already have taken effect.");
+        showOutput(title);
+        return;
+      }
+      runWorkflowStep(title,commands,index+1,report,status);
+    });
+  }
   private void runCommand(String command,String title,boolean sensitive){
-    if(client.busy()){toast(t("Une commande est déjà en cours","A command is already running"));return;}
+    if(client.busy() || workflowRunning){toast(t("Une commande est déjà en cours","A command is already running"));return;}
     currentScreen=2;lastCommand=command;
     initialize();quickBar();space(page,15);
     page.addView(text(t("Exécution en cours…","Running…"),18,CYAN,true));
