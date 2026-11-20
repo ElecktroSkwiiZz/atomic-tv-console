@@ -10,7 +10,9 @@ Application Android TV permettant de consulter et d'exécuter des commandes ADB 
 
 ### Fonctionnalités
 
-- **76 commandes prédéfinies**, classées dans 10 catégories : système, écran, réseau, audio, applications, stockage, télécommande, performances, paramètres et diagnostics.
+- **118 commandes prédéfinies**, classées dans 10 catégories : système, écran, réseau, audio, applications, stockage, télécommande, performances, paramètres et diagnostics.
+- **11 actions groupées** : diagnostic complet, réseau, HDMI/eARC, mémoire, stockage, animations et gestion des caches temporaires.
+- **Gestion des applications facultatives** : sélection manuelle des paquets système non protégés, désactivation réversible pour l’utilisateur principal et restauration par le menu. **Aucun paquet n’est désactivé automatiquement, aucun effacement de données et aucun bouton « tout supprimer ».** Les paquets essentiels sont exclus par une liste de protection conservatrice, qui ne garantit toutefois pas l’absence de dépendances constructeur.
 - **Recherche immédiate** parmi les noms, descriptions et commandes.
 - **Mode avancé** pour saisir une commande personnalisée `adb shell`.
 - **Interface conçue pour Android TV**, boutons accessibles au D-pad, textes lisibles à distance.
@@ -18,6 +20,12 @@ Application Android TV permettant de consulter et d'exécuter des commandes ADB 
 - Prévisualisation et confirmation avant chaque commande ; avertissement pour les opérations sensibles.
 - **Mises à jour officielles** : vérification des GitHub Releases, téléchargement et vérification de la signature de l'APK, puis installation après autorisation Android.
 - Branding officiel **JB Atomic Industries**.
+
+### Débloat sans risque inutile
+
+Ouvrez **Gérer les applications indésirables** : l’application liste les paquets système éligibles, sans rien cocher. Sélectionnez uniquement les paquets identifiés, relisez la liste et confirmez deux fois. L’action exécute `pm disable-user --user 0 NOM_DU_PAQUET`. Pour annuler, utilisez **Réactiver des applications** (`pm enable --user 0 NOM_DU_PAQUET`).
+
+Ces actions sont **réversibles en principe** mais peuvent perturber des fonctions constructeur. Ne désactivez jamais le lanceur d’applications, les paramètres ou les services de mise à jour. Le code empêche les paquets critiques les plus connus, sans pouvoir garantir toutes les dépendances des fabricants.
 
 ### Avant la première utilisation
 
@@ -57,7 +65,9 @@ Identifiant Android : `com.jbatomic.tvconsole`. Dépendance ADB : [tananaev/adbl
 
 **ATOMIC TV Console** is a remote-friendly Android TV application that lets you run categorized ADB shell commands without relying on a computer.
 
-- **76 preconfigured commands**, organized into 10 categories, plus a custom shell command option.
+- **118 preconfigured commands**, organized into 10 categories, plus a custom shell command option.
+- **11 guided workflows** for performance, storage, HDMI/eARC, networking, temporary cache trimming and reversible animation changes.
+- **Optional preinstalled app management**: manually select individual packages, disable for the primary user and restore them later. **No automatic bulk removal, no app-data deletion.** Critical-package filtering is deliberately conservative but cannot detect every OEM dependency.
 - Instant **search** by name, command text or description.
 - **French / English selector** with saved preference.
 - Android TV **D-pad navigation**, confirmation dialogs, readable command output.
