@@ -59,11 +59,11 @@ public final class UpdateManager {
     }
 
     private void checkInternal(boolean silent) {
-        if (busy) { if (!silent) toast("Une opération de mise à jour est déjà en cours"); return; }
+        if (busy) { if (!silent) toast(tr("Une opération de mise à jour est déjà en cours","Another update operation is already running")); return; }
         String repo = repository(activity);
-        if (!validRepository(repo)) { toast("Indique d'abord un dépôt GitHub valide"); return; }
+        if (!validRepository(repo)) { toast(tr("Indique d'abord un dépôt GitHub valide","A valid GitHub repository is required")); return; }
         busy = true;
-        if (!silent) toast("Recherche d'une version sur GitHub…");
+        if (!silent) toast(tr("Recherche d'une version sur GitHub…","Checking for new versions on GitHub…"));
         new Thread(() -> {
             try {
                 URL url = new URL("https://api.github.com/repos/" + repo + "/releases/latest");
@@ -72,12 +72,12 @@ public final class UpdateManager {
                 connection.setRequestProperty("Accept", "application/vnd.github+json");
                 connection.setRequestProperty("User-Agent", "ATOMIC-TV-Console/" + BuildConfig.VERSION_NAME);
                 int status = connection.getResponseCode();
-                if (status == 404) throw new Exception("Aucune version publique n'a encore été publiée sur " + repo);
-                if (status != 200) throw new Exception("GitHub répond HTTP " + status);
+                if (status == 404) throw new Exception(tr("Aucune version publique n'a encore été publiée sur ","No stable release has been published on ") + repo);
+                if (status != 200) throw new Exception(tr("GitHub répond HTTP ","GitHub HTTP status ") + status);
                 String json;
                 try (InputStream in = connection.getInputStream()) { json = new String(readLimit(in, 512_000), StandardCharsets.UTF_8); }
                 JSONObject release = new JSONObject(json);
-                if (release.optBoolean("draft") || release.optBoolean("prerelease")) throw new Exception("Aucune version stable publiée");
+                if (release.optBoolean("draft") || release.optBoolean("prerelease")) throw new Exception(tr("Aucune version stable publiée","No stable version has been published"));
                 String tag = release.optString("tag_name", "");
                 JSONArray assets = release.optJSONArray("assets");
                 String assetUrl = null;
@@ -91,20 +91,20 @@ public final class UpdateManager {
                         break;
                     }
                 }
-                if (assetUrl == null) throw new Exception("Aucune APK disponible dans cette publication GitHub");
+                if (assetUrl == null) throw new Exception(tr("Aucune APK disponible dans cette publication GitHub","No APK attached to this GitHub release"));
                 if (!assetUrl.startsWith("https://github.com/" + repo + "/releases/download/")) {
-                    throw new Exception("Adresse APK inattendue : publication refusée");
+                    throw new Exception(tr("Adresse APK inattendue : publication refusée","Unexpected APK download URL: refusing update"));
                 }
                 if (compareVersion(tag, BuildConfig.VERSION_NAME) <= 0) {
                     if (!silent) onMain(() -> new AlertDialog.Builder(activity).setTitle(tr("Application à jour","Already up to date"))
-                        .setMessage("Version installée : " + BuildConfig.VERSION_NAME + "\nDernière version GitHub : " + tag)
+                        .setMessage(tr("Version installée : ","Installed version: ") + BuildConfig.VERSION_NAME + "\nDernière version GitHub : " + tag)
                         .setPositiveButton(tr("Fermer","Close"), null).show());
                     return;
                 }
                 final String download = assetUrl;
                 final String sha = digest;
                 onMain(() -> new AlertDialog.Builder(activity).setTitle(tr("Mise à jour disponible","Update available"))
-                    .setMessage("Version actuelle : " + BuildConfig.VERSION_NAME + "\nNouvelle version : " + tag +
+                    .setMessage(tr("Version actuelle : ","Installed version: ") + BuildConfig.VERSION_NAME + "\nNouvelle version : " + tag +
                         "\n\nL'APK sera vérifiée avant l'installation. Android vous demandera de confirmer la mise à jour.")
                     .setNegativeButton(tr("Plus tard","Later"), null)
                     .setPositiveButton(tr("Télécharger","Download"), (dialog, which) -> download(download, sha)).show());
@@ -116,8 +116,8 @@ public final class UpdateManager {
     }
 
     private void download(String url, String digest) {
-        if (busy) { toast("Téléchargement déjà en cours"); return; }
-        busy = true; toast("Téléchargement de l'APK depuis GitHub…");
+        if (busy) { toast(tr("Téléchargement déjà en cours","An APK download is already running")); return; }
+        busy = true; toast(tr("Téléchargement de l'APK depuis GitHub…","Downloading APK from GitHub…"));
         new Thread(() -> {
             try {
                 File tmp = new File(activity.getCacheDir(), "ATOMIC-TV-Console-update.part");
@@ -126,31 +126,31 @@ public final class UpdateManager {
                 conn.setConnectTimeout(15000); conn.setReadTimeout(30000);
                 conn.setInstanceFollowRedirects(true);
                 conn.setRequestProperty("User-Agent", "ATOMIC-TV-Console/" + BuildConfig.VERSION_NAME);
-                if (conn.getResponseCode() != 200) throw new Exception("Téléchargement HTTP " + conn.getResponseCode());
+                if (conn.getResponseCode() != 200) throw new Exception(tr("Téléchargement HTTP ","Download HTTP status ") + conn.getResponseCode());
                 long size = conn.getContentLengthLong();
-                if (size > 200_000_000) throw new Exception("APK trop volumineuse");
+                if (size > 200_000_000) throw new Exception(tr("APK trop volumineuse","APK exceeds the size limit"));
                 MessageDigest sha = MessageDigest.getInstance("SHA-256");
                 long received = 0;
                 try (InputStream in = conn.getInputStream(); FileOutputStream out = new FileOutputStream(tmp)) {
                     byte[] buf = new byte[65536]; int n;
                     while ((n = in.read(buf)) != -1) {
                         received += n;
-                        if (received > 200_000_000) throw new Exception("APK trop volumineuse");
+                        if (received > 200_000_000) throw new Exception(tr("APK trop volumineuse","APK exceeds the size limit"));
                         sha.update(buf, 0, n); out.write(buf, 0, n);
                     }
                 }
-                if (received < 1000) throw new Exception("APK vide ou incomplète");
+                if (received < 1000) throw new Exception(tr("APK vide ou incomplète","The downloaded APK is empty or incomplete"));
                 if (digest.startsWith("sha256:")) {
                     String actual = hex(sha.digest());
-                    if (!actual.equalsIgnoreCase(digest.substring(7))) throw new Exception("Empreinte SHA-256 incorrecte");
+                    if (!actual.equalsIgnoreCase(digest.substring(7))) throw new Exception(tr("Empreinte SHA-256 incorrecte","SHA-256 checksum mismatch"));
                 }
                 if (!verifySameSigningCertificate(tmp)) throw new Exception(
-                    "Signature différente de l'application installée. Une mise à jour directe est interdite par Android. " +
-                    "Conservez la même clé de signature pour toutes les versions.");
+                    tr("Signature différente de l'application installée. Une mise à jour directe est interdite par Android. ","The signing certificate differs from the installed application. Android will block the update. ") +
+                    tr("Conservez la même clé de signature pour toutes les versions.","Use the same signing key for all versions."));
                 PackageInfo info = activity.getPackageManager().getPackageArchiveInfo(tmp.getAbsolutePath(), 0);
-                if (info == null || info.getLongVersionCode() <= BuildConfig.VERSION_CODE) throw new Exception("L'APK n'est pas une version plus récente");
-                if (finalApk.exists() && !finalApk.delete()) throw new Exception("Ancien fichier APK verrouillé");
-                if (!tmp.renameTo(finalApk)) throw new Exception("Impossible de préparer l'APK");
+                if (info == null || info.getLongVersionCode() <= BuildConfig.VERSION_CODE) throw new Exception(tr("L'APK n'est pas une version plus récente","The downloaded APK is not newer"));
+                if (finalApk.exists() && !finalApk.delete()) throw new Exception(tr("Ancien fichier APK verrouillé","The previous APK file is locked"));
+                if (!tmp.renameTo(finalApk)) throw new Exception(tr("Impossible de préparer l'APK","Unable to prepare downloaded APK"));
                 onMain(() -> install(finalApk));
             } catch (Exception error) { onMain(() -> new AlertDialog.Builder(activity)
                 .setTitle(tr("Mise à jour non installée","Update not installed")).setMessage(error.getMessage())
@@ -182,7 +182,7 @@ public final class UpdateManager {
         pref.edit().putBoolean("pending_update_install", false).apply();
         File file = new File(activity.getCacheDir(), "ATOMIC-TV-Console-update.apk");
         if (file.isFile()) new AlertDialog.Builder(activity)
-            .setTitle(tr("Mise à jour prête","Update ready")).setMessage("Voulez-vous installer l'APK signée déjà téléchargée ?")
+            .setTitle(tr("Mise à jour prête","Update ready")).setMessage(tr("Voulez-vous installer l'APK signée déjà téléchargée ?","Install the signed APK already downloaded?"))
             .setNegativeButton(tr("Plus tard","Later"), null)
             .setPositiveButton(tr("Installer","Install"), (dialog, n) -> install(file)).show();
     }
@@ -192,12 +192,12 @@ public final class UpdateManager {
             activity.getSharedPreferences("tv_console", Activity.MODE_PRIVATE).edit()
                 .putBoolean("pending_update_install", true).apply();
             new AlertDialog.Builder(activity).setTitle(tr("Autorisation Android requise","Android permission required"))
-                .setMessage("Autorisez ATOMIC TV Console à installer des APK, puis relancez la vérification de mise à jour.")
+                .setMessage(tr("Autorisez ATOMIC TV Console à installer des APK, puis relancez la vérification de mise à jour.","Allow ATOMIC TV Console to install APK files, then retry the update."))
                 .setNegativeButton(tr("Annuler","Cancel"), null)
                 .setPositiveButton(tr("Paramètres","Settings"), (d, x) -> {
                     Intent i = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                         Uri.parse("package:" + activity.getPackageName()));
-                    try { activity.startActivity(i); } catch (Exception e) { toast("Ouvrez les paramètres de sécurité Android"); }
+                    try { activity.startActivity(i); } catch (Exception e) { toast(tr("Ouvrez les paramètres de sécurité Android","Open Android security settings")); }
                 }).show();
             return;
         }
@@ -207,14 +207,14 @@ public final class UpdateManager {
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.setClipData(ClipData.newRawUri("ATOMIC TV Console APK", uri));
         try { activity.startActivity(intent); }
-        catch (Exception e) { toast("Impossible d'ouvrir l'installeur Android : " + e.getClass().getSimpleName()); }
+        catch (Exception e) { toast(tr("Impossible d'ouvrir l'installeur Android : ","Could not open Android APK installer: ") + e.getClass().getSimpleName()); }
     }
 
     private static byte[] readLimit(InputStream input, int limit) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         byte[] buf = new byte[8192]; int n;
         while ((n = input.read(buf)) != -1) {
-            if (out.size() + n > limit) throw new Exception("Réponse GitHub trop volumineuse");
+            if (out.size() + n > limit) throw new Exception(tr("Réponse GitHub trop volumineuse","GitHub response exceeds the size limit"));
             out.write(buf, 0, n);
         }
         return out.toByteArray();
