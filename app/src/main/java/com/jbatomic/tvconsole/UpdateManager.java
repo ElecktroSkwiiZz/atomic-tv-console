@@ -97,15 +97,18 @@ public final class UpdateManager {
                 }
                 if (compareVersion(tag, BuildConfig.VERSION_NAME) <= 0) {
                     if (!silent) onMain(() -> new AlertDialog.Builder(activity).setTitle(tr("Application à jour","Already up to date"))
-                        .setMessage(tr("Version installée : ","Installed version: ") + BuildConfig.VERSION_NAME + "\nDernière version GitHub : " + tag)
+                        .setMessage(tr("Version installée : ","Installed version: ") + BuildConfig.VERSION_NAME +
+                            tr("\\nDernière version GitHub : ","\\nLatest GitHub version: ") + tag)
                         .setPositiveButton(tr("Fermer","Close"), null).show());
                     return;
                 }
                 final String download = assetUrl;
                 final String sha = digest;
                 onMain(() -> new AlertDialog.Builder(activity).setTitle(tr("Mise à jour disponible","Update available"))
-                    .setMessage(tr("Version actuelle : ","Installed version: ") + BuildConfig.VERSION_NAME + "\nNouvelle version : " + tag +
-                        "\n\nL'APK sera vérifiée avant l'installation. Android vous demandera de confirmer la mise à jour.")
+                    .setMessage(tr("Version actuelle : ","Installed version: ") + BuildConfig.VERSION_NAME +
+                        tr("\\nNouvelle version : ","\\nNew version: ") + tag +
+                        tr("\\n\\nL'APK sera vérifiée avant l'installation. Android vous demandera de confirmer la mise à jour.",
+                           "\\n\\nThe APK signature is checked before Android asks to install it."))
                     .setNegativeButton(tr("Plus tard","Later"), null)
                     .setPositiveButton(tr("Télécharger","Download"), (dialog, which) -> download(download, sha)).show());
             } catch (Exception error) { if (!silent) onMain(() -> new AlertDialog.Builder(activity)
