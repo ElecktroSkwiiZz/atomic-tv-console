@@ -1,0 +1,37 @@
+plugins { id 'com.android.application' }
+android {
+  namespace 'com.jbatomic.tvconsole'
+  compileSdk 35
+  buildFeatures { buildConfig true }
+  defaultConfig {
+    applicationId 'com.jbatomic.tvconsole'
+    minSdk 30
+    targetSdk 34
+    versionCode 10000
+    versionName '1.0.0'
+  }
+  signingConfigs {
+    release {
+      def keyPath = project.findProperty('TV_CONSOLE_KEYSTORE')
+      if (keyPath) {
+        storeFile file(keyPath)
+        storePassword project.findProperty('TV_CONSOLE_STORE_PASSWORD') ?: ''
+        keyAlias project.findProperty('TV_CONSOLE_KEY_ALIAS') ?: 'atomic-console'
+        keyPassword project.findProperty('TV_CONSOLE_KEY_PASSWORD') ?: ''
+      }
+    }
+  }
+  buildTypes {
+    release {
+      minifyEnabled true
+      shrinkResources true
+      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+      if (project.findProperty('TV_CONSOLE_KEYSTORE')) signingConfig signingConfigs.release
+    }
+  }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+}
+dependencies { implementation 'com.tananaev:adblib:1.3' }
