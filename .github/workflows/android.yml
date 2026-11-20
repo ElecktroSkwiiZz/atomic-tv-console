@@ -1,0 +1,101 @@
+name: ATOMIC TV Console — Android TV APK
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK 35
+        shell: bash
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Gradle 8.10.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build debug APK
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        run: gradle --no-daemon --stacktrace assembleDebug
+      - name: Validate R8 release build
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        run: gradle --no-daemon --stacktrace assembleRelease
+      - name: Save debug APK for testing
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: ATOMIC-TV-Console-DEBUG
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Validate release tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          version=$(sed -nE "s/.*versionName '([^']+)'.*/\1/p" app/build.gradle | head -1)
+          test "$GITHUB_REF_NAME" = "v$version" || { echo "Tag/version mismatch" >&2; exit 1; }
+      - name: Restore private APK signing key
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          KEY: ${{ secrets.TV_CONSOLE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.TV_CONSOLE_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.TV_CONSOLE_KEY_PASSWORD }}
+          ALIAS: ${{ secrets.TV_CONSOLE_KEY_ALIAS }}
+        run: |
+          test -n "$KEY" && test -n "$STORE_PASSWORD" && test -n "$KEY_PASSWORD" && test -n "$ALIAS" || { echo "Official release signing secrets missing" >&2; exit 1; }
+          printf '%s' "$KEY" | base64 -d > "$RUNNER_TEMP/atomic-tv-console.jks"
+      - name: Build signed release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          STORE_PASSWORD: ${{ secrets.TV_CONSOLE_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.TV_CONSOLE_KEY_PASSWORD }}
+          ALIAS: ${{ secrets.TV_CONSOLE_KEY_ALIAS }}
+        run: |
+          gradle --no-daemon --stacktrace assembleRelease \
+            -PTV_CONSOLE_KEYSTORE="$RUNNER_TEMP/atomic-tv-console.jks" \
+            -PTV_CONSOLE_STORE_PASSWORD="$STORE_PASSWORD" \
+            -PTV_CONSOLE_KEY_PASSWORD="$KEY_PASSWORD" \
+            -PTV_CONSOLE_KEY_ALIAS="$ALIAS"
+          cp app/build/outputs/apk/release/app-release.apk ATOMIC-TV-Console-AndroidTV.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs ATOMIC-TV-Console-AndroidTV.apk | tee "$RUNNER_TEMP/certificate.txt"
+          actual=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/certificate.txt" | tr '[:upper:]' '[:lower:]' | head -1)
+          test -n "$actual" || { echo "Certificate missing" >&2; exit 1; }
+          if test -f SIGNATURE_PUBLIQUE.txt; then
+            expected=$(sed -n 's/^Certificat SHA-256 : //p' SIGNATURE_PUBLIQUE.txt | tr -d ':' | tr '[:upper:]' '[:lower:]')
+            test -n "$expected" && test "$actual" = "$expected" || { echo "Signer differs from pinned public certificate" >&2; exit 1; }
+          fi
+          sha256sum ATOMIC-TV-Console-AndroidTV.apk > ATOMIC-TV-Console-AndroidTV.apk.sha256
+      - name: Publish official GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" ATOMIC-TV-Console-AndroidTV.apk ATOMIC-TV-Console-AndroidTV.apk.sha256 \
+            --title "ATOMIC TV Console $GITHUB_REF_NAME" --generate-notes --verify-tag
+      - name: Save signed APK
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ATOMIC-TV-Console-RELEASE-SIGNED
+          path: ATOMIC-TV-Console-AndroidTV.apk
+          if-no-files-found: error
