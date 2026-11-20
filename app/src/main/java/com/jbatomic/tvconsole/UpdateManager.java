@@ -213,7 +213,7 @@ public final class UpdateManager {
         catch (Exception e) { toast(tr("Impossible d'ouvrir l'installeur Android : ","Could not open Android APK installer: ") + e.getClass().getSimpleName()); }
     }
 
-    private static byte[] readLimit(InputStream input, int limit) throws Exception {
+    private byte[] readLimit(InputStream input, int limit) throws Exception {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         byte[] buf = new byte[8192]; int n;
         while ((n = input.read(buf)) != -1) {
