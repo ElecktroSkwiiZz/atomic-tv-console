@@ -1,5 +1,9 @@
 # ATOMIC TV Console — JB Atomic Industries
 
+![ATOMIC TV Console — official app logo](branding/console-icon.webp)
+
+![Android TV launcher banner](branding/console-banner.webp)
+
 **FR** · [English](#english)
 
 Application Android TV permettant de consulter et d'exécuter des commandes ADB depuis la télécommande, sans saisir systématiquement de ligne de commande.

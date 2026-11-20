@@ -114,7 +114,7 @@ public final class MainActivity extends Activity {
   }
   private void header(){
     LinearLayout bar=row();page.addView(bar,new LinearLayout.LayoutParams(-1,-2));
-    ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.console_icon);
+    ImageView logo=new ImageView(this);logo.setImageResource(R.drawable.console_logo_official);
     logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
     logo.setContentDescription("JB Atomic Industries — ATOMIC TV Console");
     bar.addView(logo,new LinearLayout.LayoutParams(dp(58),dp(58)));
