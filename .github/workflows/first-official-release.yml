@@ -84,7 +84,7 @@ jobs:
             test -n "$expected" && test "$actual" = "$expected" || { echo "Signing certificate changed" >&2; exit 1; }
           fi
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep "package: name='com.jbatomic.tvconsole'"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep "versionName='1.1.0'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep "versionName='${RELEASE_TAG#v}'"
           sha256sum "$APK" > "$APK.sha256"
       - name: Publier la Release avec son tag
         shell: bash
@@ -96,7 +96,7 @@ jobs:
             ATOMIC-TV-Console-AndroidTV.apk ATOMIC-TV-Console-AndroidTV.apk.sha256 \
             --target "$GITHUB_SHA" \
             --title "ATOMIC TV Console $RELEASE_TAG" \
-            --notes "Première Release officielle signée JB Atomic Industries. 118 commandes, 11 actions groupées, interface TV FR/EN, sélection et restauration des applications, recherche, vérification des mises à jour GitHub."
+            --generate-notes
       - name: Archiver l'APK signée
         uses: actions/upload-artifact@v4
         with:

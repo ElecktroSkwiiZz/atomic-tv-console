@@ -1,5 +1,14 @@
 # Changelog / Historique
 
+## 1.2.0 — Portail PC / smartphone et interface TV / Remote control dashboard
+
+- Actions groupées remontées en haut de l’accueil Android TV, raccourcis de diagnostic directement accessibles.
+- Portail HTTP local **désactivé par défaut** : activation et code PIN à huit chiffres affichés sur la TV.
+- Interface PC, smartphone et tablette FR/EN : catalogue, recherche, terminal ADB, 11 workflows, suivi d'exécution.
+- Historique partagé avec l’interface TV, copie et export TXT des résultats.
+- Sécurité : PIN, limitation des essais, session avec cookie HttpOnly/SameSite, jeton CSRF, origine validée, session révocable et port 8767 non publié sur Internet.
+- Exécution des commandes par ADB TCP local authentifié, sorties tronquées et séquences arrêtées à la première erreur.
+
 ## 1.1.0 — Maintenance Android TV / TV maintenance
 
 - 118 commandes bilingues (42 nouvelles commandes de diagnostic).

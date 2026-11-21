@@ -21,6 +21,19 @@ Application Android TV permettant de consulter et d'exécuter des commandes ADB 
 - **Mises à jour officielles** : vérification des GitHub Releases, téléchargement et vérification de la signature de l'APK, puis installation après autorisation Android.
 - Branding officiel **JB Atomic Industries**.
 
+### Nouveau en v1.2.0 — Interface web PC / smartphone
+
+- Sur la TV, les **actions groupées sont désormais en haut de l’accueil**, avant les catégories de commandes.
+- La TV affiche une section **« Contrôle depuis un PC ou un smartphone »** : sélectionnez **Activer le portail sur le réseau local**. L’interface affiche une adresse telle que `http://192.168.1.17:8767` ainsi qu'un **PIN aléatoire à huit chiffres**.
+- Depuis un navigateur PC, Android ou iOS connecté **au même réseau privé**, ouvrez l'adresse affichée et saisissez le PIN.
+- Retrouvez **118 commandes ADB recherchables, 11 actions groupées, un terminal `adb shell`, l'historique et les résultats**.
+- Les résultats lancés sur la TV **ou depuis le navigateur** sont accessibles dans l’historique (20 derniers résultats conservés en mémoire, non persistants) : bouton **Copier** ou **Télécharger .txt**.
+- Interface web adaptative français / anglais, sans traceur ni service externe.
+- Pour les opérations modifiant des réglages et le terminal, une confirmation explicite est nécessaire. Le portail ne désactive ni ne désinstalle automatiquement les applications.
+- **Portail désactivé par défaut.** Il fonctionne tant que l'application TV reste active ; vous pouvez le désactiver ou renouveler le PIN pour invalider toutes les sessions.
+
+**Sécurité :** ce portail utilise **HTTP local non chiffré**. Activez-le uniquement sur un réseau privé de confiance. Ne configurez **aucune redirection du port 8767** sur votre routeur. L'accès est protégé par le PIN, des sessions temporaires et un jeton CSRF ; la connexion est bloquée temporairement après six codes erronés. Le port ADB utilisé pour l'exécution reste limité à `127.0.0.1`.
+
 ### Débloat sans risque inutile
 
 Ouvrez **Gérer les applications indésirables** : l’application liste les paquets système éligibles, sans rien cocher. Sélectionnez uniquement les paquets identifiés, relisez la liste et confirmez deux fois. L’action exécute `pm disable-user --user 0 NOM_DU_PAQUET`. Pour annuler, utilisez **Réactiver des applications** (`pm enable --user 0 NOM_DU_PAQUET`).
@@ -62,6 +75,10 @@ Identifiant Android : `com.jbatomic.tvconsole`. Dépendance ADB : [tananaev/adbl
 ---
 
 ## English
+
+**New in v1.2.0 — PC / phone portal:** Workflow shortcuts now appear before individual commands on the TV home screen. Open the LAN portal using **Enable local web portal** on the TV. Enter the displayed eight-digit PIN from a trusted device on the same network at `http://TV-IP:8767`. Search all commands, run guided workflows or use the `adb shell` terminal, view history and copy/download TXT reports from the TV or browser. The portal is off by default, uses short-lived sessions, anti-brute-force throttling and CSRF protections, and can be disabled at any time. Local HTTP is not encrypted: **never expose port 8767 to the public Internet**.
+
+
 
 **ATOMIC TV Console** is a remote-friendly Android TV application that lets you run categorized ADB shell commands without relying on a computer.
 

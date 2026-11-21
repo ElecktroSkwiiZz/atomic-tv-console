@@ -307,9 +307,9 @@ public final class MainActivity extends Activity {
     action(page,t("Gérer les applications de la TV","Manage installed TV applications"),true,()->showPackageSelection(false));
   }
   private void previewWorkflow(MaintenanceTasks.Task task){
-    StringBuilder preview=new StringBuilder(task.description(english)+"\\n\\n");
-    for(String command:task.commands)preview.append("adb shell ").append(command).append("\\n");
-    if(task.changesSettings)preview.append("\\n⚠ ").append(t(
+    StringBuilder preview=new StringBuilder(task.description(english)+"\n\n");
+    for(String command:task.commands)preview.append("adb shell ").append(command).append("\n");
+    if(task.changesSettings)preview.append("\n⚠ ").append(t(
       "Ces réglages peuvent modifier le comportement de la TV. Vous pouvez les rétablir avec les actions correspondantes.",
       "These settings can affect your TV. You can restore settings using the matching workflow."));
     new AlertDialog.Builder(this).setTitle(task.title(english)).setMessage(preview.toString())
@@ -358,9 +358,9 @@ public final class MainActivity extends Activity {
       t("Confirmer la désactivation","Confirm disabling");
     String commandPrefix=restore?"pm enable --user 0 ":"pm disable-user --user 0 ";
     StringBuilder preview=new StringBuilder();
-    preview.append(selected.size()).append(t(" application(s) sélectionnée(s):"," selected application(s):")).append("\\n\\n");
-    for(String name:selected)preview.append("• ").append(name).append("\\n");
-    preview.append("\\n").append(restore?
+    preview.append(selected.size()).append(t(" application(s) sélectionnée(s):"," selected application(s):")).append("\n\n");
+    for(String name:selected)preview.append("• ").append(name).append("\n");
+    preview.append("\n").append(restore?
       t("L'application tentera de restaurer ces paquets pour l'utilisateur principal.",
         "The app will attempt to enable these packages for the primary user."):
       t("Désactivation réversible, SANS désinstallation, SANS effacement des données. Une application peut cesser de fonctionner. Des dépendances constructeur peuvent empêcher l'opération.",
@@ -404,12 +404,12 @@ public final class MainActivity extends Activity {
     client.run(port,checked,(ok,output)->{
       boolean exitOk=ok&&output.contains("ATOMIC_EXIT_CODE:0");
       String clean=output.replaceAll("ATOMIC_EXIT_CODE:[0-9]+","").trim();
-      report.append("\\n[").append(index+1).append("/").append(commands.length).append("] $ adb shell ")
-        .append(raw).append("\\n").append(clean).append("\\n");
+      report.append("\n[").append(index+1).append("/").append(commands.length).append("] $ adb shell ")
+        .append(raw).append("\n").append(clean).append("\n");
       if(report.length()>42000)report.delete(0,report.length()-42000);
       if(!exitOk){
         workflowRunning=false;lastOk=false;lastCommand=t("Action groupée arrêtée","Workflow stopped");
-        lastOutput=report.toString()+"\\n"+t(
+        lastOutput=report.toString()+"\n"+t(
           "Interruption après une commande refusée ou une erreur ADB. Les étapes précédentes peuvent avoir été appliquées.",
           "Stopped after a command error or ADB failure. Previous steps may already have taken effect.");
         webServer.recordLocal(title,lastCommand,lastOutput,false);
