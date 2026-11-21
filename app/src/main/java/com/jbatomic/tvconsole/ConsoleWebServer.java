@@ -97,7 +97,7 @@ final class ConsoleWebServer {
         }
       }
     }catch(Exception ignored){}
-    return "http://IP-DE-LA-TV:"+HTTP_PORT;
+    return "http://IP-DE-LA-TV:"+actualHttpPort;
   }
   synchronized void regeneratePin(){
     pin=String.format(Locale.ROOT,"%04d",random.nextInt(10000));
@@ -123,9 +123,10 @@ final class ConsoleWebServer {
       listener=chosen;
       actualHttpPort=chosenPort;
       started=true;
+      final ServerSocket boundServer=chosen;
       Thread accept=new Thread(()->{
-        while(started){
-          try{Socket s=listener.accept();
+        while(started && listener==boundServer){
+          try{Socket s=boundServer.accept();
             s.setSoTimeout(16000);
             try{requests.execute(()->handle(s));}
             catch(RejectedExecutionException queueFull){try{s.close();}catch(IOException ignored){}}
@@ -163,7 +164,7 @@ final class ConsoleWebServer {
   private boolean validHost(Map<String,String> h){
     String host=header(h,"host");
     // Reject arbitrary DNS names to reduce DNS rebinding exposure.
-    return host.matches("(?:\\d{1,3}\\.){3}\\d{1,3}:"+HTTP_PORT)
+    return host.matches("(?:\\d{1,3}\\.){3}\\d{1,3}:"+actualHttpPort)
       || host.equals("localhost:"+actualHttpPort) || host.equals("127.0.0.1:"+actualHttpPort);
   }
   private boolean sameOrigin(Map<String,String> h){
