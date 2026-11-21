@@ -120,6 +120,12 @@ final class ConsoleWebServer {
     return p;
   }
   private static String header(Map<String,String> h,String key){return h.getOrDefault(key.toLowerCase(Locale.ROOT),"");}
+  private boolean validHost(Map<String,String> h){
+    String host=header(h,"host");
+    // Reject arbitrary DNS names to reduce DNS rebinding exposure.
+    return host.matches("(?:\\d{1,3}\\.){3}\\d{1,3}:"+HTTP_PORT)
+      || host.equals("localhost:"+HTTP_PORT) || host.equals("127.0.0.1:"+HTTP_PORT);
+  }
   private boolean sameOrigin(Map<String,String> h){
     String origin=header(h,"origin"),host=header(h,"host");
     if(origin.isEmpty())return false;
@@ -162,6 +168,7 @@ final class ConsoleWebServer {
         total+=line.length();if(total>10000){respond(s,431,"text/plain","Headers too long",null);return;}
         int colon=line.indexOf(':');if(colon>0)headers.put(line.substring(0,colon).trim().toLowerCase(Locale.ROOT),line.substring(colon+1).trim());
       }
+      if(!validHost(headers)){respond(s,403,"text/plain","Invalid host",null);return;}
       String body="";
       if(method.equals("POST")){
         if(!sameOrigin(headers)){respond(s,403,"application/json",error("Origin rejected"),null);return;}
@@ -289,6 +296,25 @@ final class ConsoleWebServer {
       respond(s,404,"application/json",error("Not found"),null);
     }catch(Exception e){android.util.Log.w("AtomicWeb","Request failed",e);}
   }
+  void recordLocal(String title,String command,String output,boolean ok){
+    Job job=new Job();
+    synchronized(this){job.id="tv"+(++counter);}
+    job.title=title==null?"TV command":title;
+    job.command=command==null?"":command;
+    job.output=output==null?"":output.substring(0,Math.min(output.length(),OUTPUT_LIMIT));
+    job.ok=ok;job.status="done";
+    jobs.put(job.id,job);
+    remember(job);
+  }
+  private void remember(Job job){
+    synchronized(history){
+      history.add(job);
+      while(history.size()>20){
+        Job old=history.remove(0);
+        jobs.remove(old.id);
+      }
+    }
+  }
   private void execute(Job job,String[] commands){
     boolean success=true;StringBuilder report=new StringBuilder();
     try{
@@ -309,7 +335,7 @@ final class ConsoleWebServer {
     }catch(Exception e){success=false;report.append("\n").append(e.getMessage());}
     finally{
       job.ok=success;job.output=report.toString();job.status="done";
-      synchronized(history){history.add(job);while(history.size()>20){Job old=history.remove(0);jobs.remove(old.id);}}
+      remember(job);
       runningJob.set(false);
     }
   }
