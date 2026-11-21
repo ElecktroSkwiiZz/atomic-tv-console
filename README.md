@@ -1,103 +1,75 @@
-# ATOMIC TV Console — JB Atomic Industries
+<div align="center">
 
-![ATOMIC TV Console — official app logo](branding/console-icon.webp)
+![ATOMIC TV Console — JB Atomic Industries](branding/console-banner.webp)
 
-![Android TV launcher banner](branding/console-banner.webp)
+# ATOMIC TV Console
+### Commandes ADB, diagnostics Android TV et contrôle depuis PC ou smartphone
 
-**FR** · [English](#english)
+**Application Android TV / Google TV · 118 commandes · 11 actions groupées · Portail web local**
 
-Application Android TV permettant de consulter et d'exécuter des commandes ADB depuis la télécommande, sans saisir systématiquement de ligne de commande.
+[Français](README.md) · [English](README.en.md) · [Español](README.es.md) · [Русский](README.ru.md)
 
-### Fonctionnalités
+[**Télécharger l’APK officielle**](https://github.com/ElecktroSkwiiZz/atomic-tv-console/releases/latest) · [Versions et mises à jour](https://github.com/ElecktroSkwiiZz/atomic-tv-console/releases) · [Site JB Atomic Industries](https://jbatomic.com/)
 
-- **118 commandes prédéfinies**, classées dans 10 catégories : système, écran, réseau, audio, applications, stockage, télécommande, performances, paramètres et diagnostics.
-- **11 actions groupées** : diagnostic complet, réseau, HDMI/eARC, mémoire, stockage, animations et gestion des caches temporaires.
-- **Gestion des applications facultatives** : sélection manuelle des paquets système non protégés, désactivation réversible pour l’utilisateur principal et restauration par le menu. **Aucun paquet n’est désactivé automatiquement, aucun effacement de données et aucun bouton « tout supprimer ».** Les paquets essentiels sont exclus par une liste de protection conservatrice, qui ne garantit toutefois pas l’absence de dépendances constructeur.
-- **Recherche immédiate** parmi les noms, descriptions et commandes.
-- **Mode avancé** pour saisir une commande personnalisée `adb shell`.
-- **Interface conçue pour Android TV**, boutons accessibles au D-pad, textes lisibles à distance.
-- **Français et anglais**, sélecteur intégré avec préférence mémorisée.
-- Prévisualisation et confirmation avant chaque commande ; avertissement pour les opérations sensibles.
-- **Mises à jour officielles** : vérification des GitHub Releases, téléchargement et vérification de la signature de l'APK, puis installation après autorisation Android.
-- Branding officiel **JB Atomic Industries**.
+</div>
 
-### Nouveau en v1.2.0 — Interface web PC / smartphone
+## Présentation
 
-- Sur la TV, les **actions groupées sont désormais en haut de l’accueil**, avant les catégories de commandes.
-- La TV affiche une section **« Contrôle depuis un PC ou un smartphone »** : sélectionnez **Activer le portail sur le réseau local**. L’interface affiche une adresse telle que `http://192.168.1.17:8767` ainsi qu'un **PIN aléatoire à quatre chiffres**.
-- Depuis un navigateur PC, Android ou iOS connecté **au même réseau privé**, ouvrez l'adresse affichée et saisissez le PIN.
-- Retrouvez **118 commandes ADB recherchables, 11 actions groupées, un terminal `adb shell`, l'historique et les résultats**.
-- Les résultats lancés sur la TV **ou depuis le navigateur** sont accessibles dans l’historique (20 derniers résultats conservés en mémoire, non persistants) : bouton **Copier** ou **Télécharger .txt**.
-- Interface web adaptative français / anglais, sans traceur ni service externe.
-- Pour les opérations modifiant des réglages et le terminal, une confirmation explicite est nécessaire. Le portail ne désactive ni ne désinstalle automatiquement les applications.
-- **Portail désactivé par défaut.** Il fonctionne tant que l'application TV reste active ; vous pouvez le désactiver ou renouveler le PIN pour invalider toutes les sessions.
+**ATOMIC TV Console** est une application de gestion et de diagnostic pour **Android TV et Google TV**, développée par **JB Atomic Industries**. Elle réunit un catalogue de commandes ADB, des opérations groupées et un terminal accessible depuis la télévision ou un navigateur sur le réseau local. Elle vise à rendre les diagnostics et les réglages Android TV plus accessibles, sans masquer les limites des autorisations système.
 
-**Sécurité :** ce portail utilise **HTTP local non chiffré**. Activez-le uniquement sur un réseau privé de confiance. Ne configurez **aucune redirection du port configuré** sur votre routeur. L'accès est protégé par le PIN, des sessions temporaires et un jeton CSRF ; la connexion est bloquée temporairement après six codes erronés. Le port ADB utilisé pour l'exécution reste limité à `127.0.0.1`.
+## Fonctionnalités
 
-**Port web configurable (v1.2.1) :** ouvrez « Choisir le port du portail web » depuis l’accueil TV. Le port initial est `8767`, différent du port ADB `5555`. Si le port demandé est occupé, le serveur essaie jusqu’à 19 ports suivants, en excluant le port ADB. L’adresse affichée sur la TV indique le port réellement utilisé. Les modifications sont mémorisées et le changement de port déconnecte les anciennes sessions.
+| Fonction | Description |
+| --- | --- |
+| **118 commandes ADB** | Recherche et catégories : système, réseau, HDMI/audio, écran, stockage, applications, performances, etc. |
+| **11 actions groupées** | Diagnostics système, réseau, HDMI/eARC, mémoire et stockage ; animations et caches temporaires |
+| **Portail web local** | Interface pour PC, smartphone ou tablette avec catalogue, terminal et export TXT |
+| **Terminal ADB** | Saisie de commandes `adb shell` avec confirmation avant exécution |
+| **Résultats exportables** | Affichage, copie et téléchargement TXT ; historique temporaire |
+| **Gestion des applications** | Désactivation manuelle réversible de paquets sélectionnés, sans désinstallation automatique |
+| **Interface TV** | Navigation à la télécommande avec focus visible et affichage français / anglais |
+| **Mises à jour** | APK officielles GitHub Releases avec vérification du certificat Android |
 
-### Débloat sans risque inutile
+## Télécharger et installer
 
-Ouvrez **Gérer les applications indésirables** : l’application liste les paquets système éligibles, sans rien cocher. Sélectionnez uniquement les paquets identifiés, relisez la liste et confirmez deux fois. L’action exécute `pm disable-user --user 0 NOM_DU_PAQUET`. Pour annuler, utilisez **Réactiver des applications** (`pm enable --user 0 NOM_DU_PAQUET`).
+**Version publiée : v1.2.1** — [Télécharger l’APK Android TV signée](https://github.com/ElecktroSkwiiZz/atomic-tv-console/releases/latest).
 
-Ces actions sont **réversibles en principe** mais peuvent perturber des fonctions constructeur. Ne désactivez jamais le lanceur d’applications, les paramètres ou les services de mise à jour. Le code empêche les paquets critiques les plus connus, sans pouvoir garantir toutes les dépendances des fabricants.
+1. Installez l’APK officielle sur votre télévision Android TV / Google TV.
+2. Activez et autorisez au préalable le **débogage ADB TCP** si votre télévision le prend en charge.
+3. Dans l’application, testez la connexion ADB (par défaut `127.0.0.1:5555`).
+4. Ouvrez les **Actions groupées**, une catégorie ou le terminal.
 
-### Avant la première utilisation
+**Compatibilité :** Android 11+ (API 30+). L’application nécessite un endpoint **ADB TCP classique** préalablement activé et autorisé. L’appairage ADB sans fil **TLS** d’Android n’est pas pris en charge par le client actuel. Certaines commandes sont indisponibles selon les constructeurs ou nécessitent des privilèges supplémentaires.
 
-Une application Android standard ne dispose pas des droits ADB. **ATOMIC TV Console utilise un client ADB TCP authentifié**, connecté uniquement à `127.0.0.1` (la TV elle-même).
+## Contrôler Android TV depuis un ordinateur ou un téléphone
 
-1. Activez les *Options développeur* et le débogage ADB réseau/TCP si votre firmware le permet.
-2. Assurez-vous qu'ADB TCP est accessible localement (port 5555 par défaut ; modifiable dans l'application).
-3. Cliquez sur **Tester la connexion**. Validez l'autorisation de la clé RSA sur la TV.
-4. Choisissez une catégorie ou lancez une recherche, vérifiez la commande et confirmez.
+1. Sur la TV, activez **Contrôle depuis un PC ou un smartphone**.
+2. Relevez l’**adresse locale** et le **PIN à 4 chiffres** affichés sur la TV.
+3. Ouvrez l’adresse affichée sur un appareil connecté au même réseau privé.
+4. Consultez les commandes, exécutez les actions groupées, utilisez le terminal et téléchargez les résultats au format `.txt`.
 
-**Compatibilité :** Android TV / Google TV Android 11+, selon les limitations du fabricant. Les firmwares n'exposant que le débogage sans fil TLS avec code d'appairage **ne sont pas compatibles avec ce client TCP traditionnel**. Le port 5555 n'est pas activé automatiquement et l'application ne contourne aucune restriction système. Certaines commandes nécessitent des permissions absentes, des API constructeur ou le root : elles pourront échouer.
+Le port du portail est configurable (**8767 par défaut**). Si le port choisi est occupé, l’application essaie jusqu’à **19 autres ports** et affiche celui effectivement utilisé. Le portail est désactivé par défaut.
 
-**Sécurité :** le client ne se connecte qu'à la boucle locale. Les clés RSA privées sont enregistrées dans l'espace privé de l'application. Les commandes personnalisées sont potentiellement destructrices : elles exigent une confirmation explicite. N'exposez jamais ADB TCP sur un réseau non fiable.
+**Sécurité :** le portail utilise **HTTP local non chiffré**. Ne l’utilisez que sur un réseau privé de confiance et **n’exposez jamais le port sur Internet**. Le PIN court est accompagné d’un verrouillage après plusieurs tentatives erronées, mais ne remplace pas un réseau sûr. Les commandes avancées peuvent modifier le système. Les applications préinstallées ne sont jamais supprimées automatiquement.
 
-### Mises à jour et signatures
+## Questions fréquentes
 
-L'application recherche les versions dans [GitHub Releases](https://github.com/ElecktroSkwiiZz/atomic-tv-console/releases). Elle compare les versions, vérifie la signature de chaque APK avec celle déjà installée, puis demande l'autorisation d'installation. Elle ne peut pas installer des applications en silence.
+**Est-ce une application de root Android TV ?** Non. Elle ne donne pas de nouveaux privilèges et ne contourne pas les restrictions Android.
 
-Le dépôt compile automatiquement une APK de **développement (debug)** à chaque changement. La publication d'une APK **Release signée** demande d'abord une clé de signature *propre à ce logiciel*, installée comme secrets GitHub :
-`TV_CONSOLE_KEYSTORE_BASE64`, `TV_CONSOLE_STORE_PASSWORD`, `TV_CONSOLE_KEY_PASSWORD`, `TV_CONSOLE_KEY_ALIAS`.
-Conservez définitivement la même clé. Après vérification du certificat, renseignez son SHA-256 public dans `SIGNATURE_PUBLIQUE.txt` pour bloquer tout changement accidentel de signature.
+**Peut-on améliorer les FPS d’un jeu ou d’une console HDMI ?** Les réglages d’animation peuvent réduire la durée des transitions Android ; ils n’augmentent pas les FPS d’une console HDMI.
 
-Un tag `v1.0.0` (conforme à `versionName`) déclenche alors la Release signée. **Ne publiez pas d'APK debug comme version officielle.**
+**Peut-on gérer la TV depuis un smartphone ?** Oui, au moyen du portail web local après activation et connexion avec le PIN.
 
-### Développement
+**Peut-on récupérer les résultats sur Windows ?** Oui, par copie ou export TXT depuis le navigateur.
 
-JDK 17, Android SDK 35, Gradle 8.10.2 :
-```bash
-gradle --no-daemon assembleDebug
-```
+**L’application supprime-t-elle toutes les applications système ?** Non. Elle propose une sélection manuelle et une désactivation réversible ; la compatibilité des services constructeur doit être vérifiée.
 
-Identifiant Android : `com.jbatomic.tvconsole`. Dépendance ADB : [tananaev/adblib 1.3](https://github.com/tananaev/adblib) (BSD-3-Clause). Projet et éléments graphiques : © 2026 JB Atomic Industries, tous droits réservés sous réserve des licences tierces.
+## Développement et ressources
 
----
+- **Application ID :** `com.jbatomic.tvconsole`
+- **Technologies :** Java, Android SDK 35, JDK 17, Gradle 8.10.2, ADB
+- **Compilation de test :** `gradle --no-daemon assembleDebug`
+- [Historique des versions](CHANGELOG.md) · [Sécurité](SECURITY.md) · [Empreinte publique APK](SIGNATURE_PUBLIQUE.txt) · [Licences tierces](THIRD_PARTY_NOTICES.md)
+- [Autre application JB Atomic Industries : ATOMIC TV Capture](https://github.com/ElecktroSkwiiZz/atomic-tv-capture)
 
-## English
-
-**v1.2.1:** The portal now uses a **four-digit PIN** with an existing failed-login lockout. Configure the preferred LAN web port directly from the TV (default **8767**, independent of ADB port 5555). If occupied, the app tests up to 19 subsequent ports and displays the actual listening URL. A port change invalidates previous browser sessions.
-
-
-
-**New in v1.2.0 — PC / phone portal:** Workflow shortcuts now appear before individual commands on the TV home screen. Open the LAN portal using **Enable local web portal** on the TV. Enter the displayed four-digit PIN from a trusted device on the same network at `http://TV-IP:PORT-AFFICHE`. Search all commands, run guided workflows or use the `adb shell` terminal, view history and copy/download TXT reports from the TV or browser. The portal is off by default, uses short-lived sessions, anti-brute-force throttling and CSRF protections, and can be disabled at any time. Local HTTP is not encrypted: **never expose port configuré to the public Internet**.
-
-
-
-**ATOMIC TV Console** is a remote-friendly Android TV application that lets you run categorized ADB shell commands without relying on a computer.
-
-- **118 preconfigured commands**, organized into 10 categories, plus a custom shell command option.
-- **11 guided workflows** for performance, storage, HDMI/eARC, networking, temporary cache trimming and reversible animation changes.
-- **Optional preinstalled app management**: manually select individual packages, disable for the primary user and restore them later. **No automatic bulk removal, no app-data deletion.** Critical-package filtering is deliberately conservative but cannot detect every OEM dependency.
-- Instant **search** by name, command text or description.
-- **French / English selector** with saved preference.
-- Android TV **D-pad navigation**, confirmation dialogs, readable command output.
-- Official GitHub Release update checker with **APK signing certificate verification** and Android installation confirmation.
-
-**Requirements:** Android TV / Google TV 11+, a **previously enabled and authorized legacy TCP ADB endpoint on localhost** (default port 5555), and device firmware that permits it. Android 11+ wireless pairing with TLS is a different transport and is **not supported** by the app's legacy ADB client. No privilege escalation is attempted. Not all commands will work on every TV.
-
-**Updates:** the repository builds a test APK automatically. Official signed releases require a dedicated, securely stored keystore and the GitHub Actions secrets detailed above. After official signing is configured, the app can offer in-place updates from this repository's GitHub Releases.
-
-Copyright © 2026 JB Atomic Industries — https://jbatomic.com/
+**Éditeur : [JB Atomic Industries](https://jbatomic.com/)** · © 2026 JB Atomic Industries. Les logos et le code demeurent soumis aux mentions et licences indiquées dans le dépôt. La disponibilité du code source ne signifie pas qu’une licence de réutilisation a été accordée.
