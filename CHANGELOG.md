@@ -1,5 +1,13 @@
 # Changelog / Historique
 
+## 1.2.1 — Code PIN court / Configurable web port
+
+- Code PIN du portail web à **4 chiffres**, sur la TV et dans l'interface FR/EN.
+- Port web configurable sur la TV (défaut 8767, distinct du port ADB).
+- Recherche automatique sur les 20 ports suivants en cas de conflit ; adresse affichée avec le port effectivement utilisé.
+- Port préféré mémorisé, sessions invalidées lors du changement de port.
+- Limitation de connexion existante conservée : verrouillage temporaire après six erreurs.
+
 ## 1.2.0 — Portail PC / smartphone et interface TV / Remote control dashboard
 
 - Actions groupées remontées en haut de l’accueil Android TV, raccourcis de diagnostic directement accessibles.

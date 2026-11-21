@@ -24,7 +24,7 @@ Application Android TV permettant de consulter et d'exécuter des commandes ADB 
 ### Nouveau en v1.2.0 — Interface web PC / smartphone
 
 - Sur la TV, les **actions groupées sont désormais en haut de l’accueil**, avant les catégories de commandes.
-- La TV affiche une section **« Contrôle depuis un PC ou un smartphone »** : sélectionnez **Activer le portail sur le réseau local**. L’interface affiche une adresse telle que `http://192.168.1.17:8767` ainsi qu'un **PIN aléatoire à huit chiffres**.
+- La TV affiche une section **« Contrôle depuis un PC ou un smartphone »** : sélectionnez **Activer le portail sur le réseau local**. L’interface affiche une adresse telle que `http://192.168.1.17:8767` ainsi qu'un **PIN aléatoire à quatre chiffres**.
 - Depuis un navigateur PC, Android ou iOS connecté **au même réseau privé**, ouvrez l'adresse affichée et saisissez le PIN.
 - Retrouvez **118 commandes ADB recherchables, 11 actions groupées, un terminal `adb shell`, l'historique et les résultats**.
 - Les résultats lancés sur la TV **ou depuis le navigateur** sont accessibles dans l’historique (20 derniers résultats conservés en mémoire, non persistants) : bouton **Copier** ou **Télécharger .txt**.
@@ -32,7 +32,9 @@ Application Android TV permettant de consulter et d'exécuter des commandes ADB 
 - Pour les opérations modifiant des réglages et le terminal, une confirmation explicite est nécessaire. Le portail ne désactive ni ne désinstalle automatiquement les applications.
 - **Portail désactivé par défaut.** Il fonctionne tant que l'application TV reste active ; vous pouvez le désactiver ou renouveler le PIN pour invalider toutes les sessions.
 
-**Sécurité :** ce portail utilise **HTTP local non chiffré**. Activez-le uniquement sur un réseau privé de confiance. Ne configurez **aucune redirection du port 8767** sur votre routeur. L'accès est protégé par le PIN, des sessions temporaires et un jeton CSRF ; la connexion est bloquée temporairement après six codes erronés. Le port ADB utilisé pour l'exécution reste limité à `127.0.0.1`.
+**Sécurité :** ce portail utilise **HTTP local non chiffré**. Activez-le uniquement sur un réseau privé de confiance. Ne configurez **aucune redirection du port configuré** sur votre routeur. L'accès est protégé par le PIN, des sessions temporaires et un jeton CSRF ; la connexion est bloquée temporairement après six codes erronés. Le port ADB utilisé pour l'exécution reste limité à `127.0.0.1`.
+
+**Port web configurable (v1.2.1) :** ouvrez « Choisir le port du portail web » depuis l’accueil TV. Le port initial est `8767`, différent du port ADB `5555`. Si le port demandé est occupé, le serveur essaie jusqu’à 19 ports suivants, en excluant le port ADB. L’adresse affichée sur la TV indique le port réellement utilisé. Les modifications sont mémorisées et le changement de port déconnecte les anciennes sessions.
 
 ### Débloat sans risque inutile
 
@@ -76,7 +78,11 @@ Identifiant Android : `com.jbatomic.tvconsole`. Dépendance ADB : [tananaev/adbl
 
 ## English
 
-**New in v1.2.0 — PC / phone portal:** Workflow shortcuts now appear before individual commands on the TV home screen. Open the LAN portal using **Enable local web portal** on the TV. Enter the displayed eight-digit PIN from a trusted device on the same network at `http://TV-IP:8767`. Search all commands, run guided workflows or use the `adb shell` terminal, view history and copy/download TXT reports from the TV or browser. The portal is off by default, uses short-lived sessions, anti-brute-force throttling and CSRF protections, and can be disabled at any time. Local HTTP is not encrypted: **never expose port 8767 to the public Internet**.
+**v1.2.1:** The portal now uses a **four-digit PIN** with an existing failed-login lockout. Configure the preferred LAN web port directly from the TV (default **8767**, independent of ADB port 5555). If occupied, the app tests up to 19 subsequent ports and displays the actual listening URL. A port change invalidates previous browser sessions.
+
+
+
+**New in v1.2.0 — PC / phone portal:** Workflow shortcuts now appear before individual commands on the TV home screen. Open the LAN portal using **Enable local web portal** on the TV. Enter the displayed four-digit PIN from a trusted device on the same network at `http://TV-IP:PORT-AFFICHE`. Search all commands, run guided workflows or use the `adb shell` terminal, view history and copy/download TXT reports from the TV or browser. The portal is off by default, uses short-lived sessions, anti-brute-force throttling and CSRF protections, and can be disabled at any time. Local HTTP is not encrypted: **never expose port configuré to the public Internet**.
 
 
 

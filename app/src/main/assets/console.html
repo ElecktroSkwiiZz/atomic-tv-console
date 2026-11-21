@@ -28,8 +28,8 @@
     <main>
       <section id="login" class="login-card" aria-labelledby="loginTitle">
         <div class="login-icon">⚛</div><h2 id="loginTitle" data-i18n="loginTitle">Connexion sécurisée</h2>
-        <p data-i18n="loginHelp">Saisissez le code à 8 chiffres affiché sur votre téléviseur. Accessible uniquement sur votre réseau local.</p>
-        <form id="loginForm"><label for="pin" data-i18n="pin">Code TV</label><input id="pin" type="password" inputmode="numeric" pattern="[0-9]{8}" minlength="8" maxlength="8" required autocomplete="one-time-code" placeholder="••••••••">
+        <p data-i18n="loginHelp">Saisissez le code à 4 chiffres affiché sur votre téléviseur. Accessible uniquement sur votre réseau local.</p>
+        <form id="loginForm"><label for="pin" data-i18n="pin">Code TV</label><input id="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" minlength="4" maxlength="4" required autocomplete="one-time-code" placeholder="••••">
           <button class="btn primary" type="submit" data-i18n="connect">Se connecter</button></form>
         <p class="hint" data-i18n="lanWarning">N'utilisez pas ce portail sur un réseau Wi-Fi public. Le trafic HTTP local n'est pas chiffré.</p>
         <p id="loginError" class="error" role="alert" aria-live="polite"></p>

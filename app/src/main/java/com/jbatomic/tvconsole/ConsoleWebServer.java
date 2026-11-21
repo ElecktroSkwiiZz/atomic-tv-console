@@ -18,7 +18,13 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 final class ConsoleWebServer {
-  static final int HTTP_PORT=8767;
+  static final int DEFAULT_HTTP_PORT=8767;
+  static final int MIN_HTTP_PORT=1024;
+  static final int MAX_HTTP_PORT=65535;
+  // Try a bounded series of nearby ports if the requested one is occupied.
+  static final int PORT_ATTEMPTS=20;
+  private volatile int preferredHttpPort=DEFAULT_HTTP_PORT;
+  private volatile int actualHttpPort=0;
   private static final int BODY_LIMIT=4096;
   private static final int OUTPUT_LIMIT=125000;
   private static final long SESSION_TTL=45L*60*1000;
@@ -59,10 +65,27 @@ final class ConsoleWebServer {
   }
   ConsoleWebServer(Context context,AdbClient adb,java.util.function.IntSupplier adbPort){
     this.app=context.getApplicationContext();this.adb=adb;this.adbPort=adbPort;
+    int saved=app.getSharedPreferences("tv_console",Context.MODE_PRIVATE)
+      .getInt("web_http_port",DEFAULT_HTTP_PORT);
+    preferredHttpPort=validPort(saved)?saved:DEFAULT_HTTP_PORT;
     regeneratePin();
   }
+  static boolean validPort(int port){return port>=MIN_HTTP_PORT&&port<=MAX_HTTP_PORT;}
   String getPin(){return pin;}
   boolean active(){return started;}
+  int getPort(){return actualHttpPort;}
+  int getPreferredPort(){return preferredHttpPort;}
+  synchronized boolean setPreferredPort(int port){
+    if(!validPort(port))return false;
+    if(preferredHttpPort==port)return true;
+    boolean wasRunning=started;
+    stop();
+    preferredHttpPort=port;
+    app.getSharedPreferences("tv_console",Context.MODE_PRIVATE).edit()
+      .putInt("web_http_port",port).apply();
+    regeneratePin(); // Expire previous browser sessions on a port change.
+    return !wasRunning||start();
+  }
   String address(){
     try{
       for(Enumeration<NetworkInterface> en=NetworkInterface.getNetworkInterfaces();en.hasMoreElements();){
@@ -70,22 +93,35 @@ final class ConsoleWebServer {
         if(!n.isUp()||n.isLoopback())continue;
         for(Enumeration<InetAddress> addrs=n.getInetAddresses();addrs.hasMoreElements();){
           InetAddress addr=addrs.nextElement();
-          if(addr instanceof Inet4Address&&addr.isSiteLocalAddress())return "http://"+addr.getHostAddress()+":"+HTTP_PORT;
+          if(addr instanceof Inet4Address&&addr.isSiteLocalAddress())return "http://"+addr.getHostAddress()+":"+actualHttpPort;
         }
       }
     }catch(Exception ignored){}
     return "http://IP-DE-LA-TV:"+HTTP_PORT;
   }
   synchronized void regeneratePin(){
-    pin=String.format(Locale.ROOT,"%08d",random.nextInt(100000000));
+    pin=String.format(Locale.ROOT,"%04d",random.nextInt(10000));
     sessions.clear();loginAttempts=0;lockedUntil=0L;
   }
   synchronized boolean start(){
     if(started)return true;
     try{
-      listener=new ServerSocket();
-      listener.setReuseAddress(true);
-      listener.bind(new InetSocketAddress(HTTP_PORT),12);
+      ServerSocket chosen=null;
+      int chosenPort=0;
+      for(int i=0;i<PORT_ATTEMPTS;i++){
+        int candidate=preferredHttpPort+i;
+        if(candidate>MAX_HTTP_PORT) candidate=MIN_HTTP_PORT+(candidate-MAX_HTTP_PORT-1);
+        if(candidate==adbPort.getAsInt())continue;
+        ServerSocket socket=new ServerSocket();
+        try{
+          socket.setReuseAddress(false);
+          socket.bind(new InetSocketAddress(candidate),12);
+          chosen=socket;chosenPort=candidate;break;
+        }catch(IOException occupied){try{socket.close();}catch(IOException ignored){}}
+      }
+      if(chosen==null){actualHttpPort=0;return false;}
+      listener=chosen;
+      actualHttpPort=chosenPort;
       started=true;
       Thread accept=new Thread(()->{
         while(started){
@@ -104,6 +140,8 @@ final class ConsoleWebServer {
     started=false;
     sessions.clear();
     try{if(listener!=null)listener.close();}catch(IOException ignored){}
+    listener=null;
+    actualHttpPort=0;
   }
   void close(){stop();requests.shutdownNow();execution.shutdownNow();}
   private static String token(SecureRandom rnd){
@@ -126,7 +164,7 @@ final class ConsoleWebServer {
     String host=header(h,"host");
     // Reject arbitrary DNS names to reduce DNS rebinding exposure.
     return host.matches("(?:\\d{1,3}\\.){3}\\d{1,3}:"+HTTP_PORT)
-      || host.equals("localhost:"+HTTP_PORT) || host.equals("127.0.0.1:"+HTTP_PORT);
+      || host.equals("localhost:"+actualHttpPort) || host.equals("127.0.0.1:"+actualHttpPort);
   }
   private boolean sameOrigin(Map<String,String> h){
     String origin=header(h,"origin"),host=header(h,"host");
@@ -213,7 +251,7 @@ final class ConsoleWebServer {
       }
       if(path.equals("/api/session")&&method.equals("GET")){
         JSONObject ok=new JSONObject();ok.put("ok",true);ok.put("csrf",sess.csrf);
-        ok.put("version",BuildConfig.VERSION_NAME);ok.put("port",HTTP_PORT);
+        ok.put("version",BuildConfig.VERSION_NAME);ok.put("port",actualHttpPort);
         respond(s,200,"application/json",ok.toString(),null);return;
       }
       if(path.equals("/api/catalog")&&method.equals("GET")){

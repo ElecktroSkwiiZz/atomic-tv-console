@@ -172,12 +172,13 @@ public final class MainActivity extends Activity {
     LinearLayout remote=panel(page);
     remote.addView(text(t("▣  CONTRÔLE DEPUIS UN PC OU UN SMARTPHONE","▣  CONTROL FROM PC OR PHONE"),14,CYAN,true));
     space(remote,7);
-    remote.addView(text(t("Portail local sécurisé par un code à 8 chiffres. Copiez les résultats ou téléchargez-les en TXT.",
-      "Local 8-digit PIN portal. Copy results or download TXT reports."),12,MUTED,false));
+    remote.addView(text(t("Portail local protégé par un code à 4 chiffres. Copiez les résultats ou téléchargez-les en TXT.",
+      "Local 4-digit PIN portal. Copy results or download TXT reports."),12,MUTED,false));
     space(remote,7);
     remote.addView(text(webServer.active()?
       t("Adresse : ","URL: ")+webServer.address():
       t("Portail désactivé · activez-le pour afficher l’adresse.","Portal off · enable to show its address."),15,TEXT,true));
+    action(remote,t("⚙  Choisir le port du portail web","⚙  Configure web portal port"),false,this::configureWebPort);
     if(webServer.active()){
       space(remote,4);
       remote.addView(text(t("Code d’accès : ","Access PIN: ")+webServer.getPin(),22,0xff9ef3ed,true));
@@ -191,7 +192,7 @@ public final class MainActivity extends Activity {
       });
     }else{
       action(remote,t("Activer le portail sur le réseau local","Enable local web portal"),true,()->{
-        if(!webServer.start())toast(t("Port 8767 indisponible","Port 8767 unavailable"));
+        if(!webServer.start())toast(t("Aucun port disponible parmi les 20 ports testés","No free port among the 20 ports checked"));
         showHome();
       });
     }
@@ -221,6 +222,35 @@ public final class MainActivity extends Activity {
     space(page,11);
     page.addView(text(t("Les commandes système requièrent une connexion ADB déjà autorisée. Les actions sensibles sont confirmées avant exécution.",
       "System commands require an authorized ADB connection. Sensitive actions require confirmation."),11,MUTED,false));
+  }
+  private void configureWebPort(){
+    EditText input=new EditText(this);
+    input.setInputType(InputType.TYPE_CLASS_NUMBER);
+    input.setSingleLine(true);
+    input.setSelectAllOnFocus(true);
+    input.setText(String.valueOf(webServer.getPreferredPort()));
+    LinearLayout holder=column();holder.setPadding(dp(21),0,dp(21),0);
+    holder.addView(text(t(
+      "Port souhaité (1024 à 65535). Si ce port est occupé, l'application essaie les 19 ports suivants. L'adresse active sera toujours affichée sur l'accueil. Le port ADB est indépendant.",
+      "Preferred port (1024–65535). If busy, the app tries the next 19 ports. The actual address always appears on the home screen. The ADB port is separate."),13,MUTED,false));
+    space(holder,10);holder.addView(input,new LinearLayout.LayoutParams(-1,dp(54)));
+    new AlertDialog.Builder(this)
+      .setTitle(t("Port du portail web","Web portal port"))
+      .setView(holder)
+      .setNegativeButton(t("Annuler","Cancel"),null)
+      .setPositiveButton(t("Enregistrer","Save"),(d,w)->{
+        try{
+          int selected=Integer.parseInt(input.getText().toString().trim());
+          if(!ConsoleWebServer.validPort(selected))throw new NumberFormatException();
+          boolean ok=webServer.setPreferredPort(selected);
+          if(!ok)toast(t(
+            "Port occupé : aucun port libre trouvé dans la plage recherchée.",
+            "Port unavailable: no free port found in the search range."));
+          showHome();
+        }catch(NumberFormatException invalid){
+          toast(t("Saisissez un port entre 1024 et 65535","Enter a port from 1024 to 65535"));
+        }
+      }).show();
   }
   private void showBrowser(String target){
     currentScreen=1;group=target;initialize();quickBar();space(page,12);
