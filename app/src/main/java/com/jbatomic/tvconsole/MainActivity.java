@@ -32,6 +32,7 @@ public final class MainActivity extends Activity {
   private static final int BG=0xff091221,CARD=0xff13253b,TEXT=0xfff1f8ff,MUTED=0xffacc6da,CYAN=0xff6cdeeb;
   private final Handler ui = new Handler(Looper.getMainLooper());
   private AdbClient client;
+  private ConsoleWebServer webServer;
   private LinearLayout page;
   private boolean english;
   private boolean firstResume=true;
@@ -48,6 +49,7 @@ public final class MainActivity extends Activity {
   @Override public void onCreate(Bundle state){
     super.onCreate(state);
     client=new AdbClient(this);
+    webServer=new ConsoleWebServer(this,client,()->port);
     english="en".equals(getSharedPreferences("tv_console",MODE_PRIVATE).getString("language",
       Locale.getDefault().getLanguage().equals("en")?"en":"fr"));
     port=getSharedPreferences("tv_console",MODE_PRIVATE).getInt("adb_port",5555);
@@ -59,7 +61,7 @@ public final class MainActivity extends Activity {
     if(firstResume){firstResume=false;return;}
     ui.postDelayed(()->new UpdateManager(this).resumePendingInstallation(),450);
   }
-  @Override public void onDestroy(){client.close();super.onDestroy();}
+  @Override public void onDestroy(){if(webServer!=null)webServer.close();client.close();super.onDestroy();}
   @Override public void onBackPressed(){
     if(workflowRunning){toast(t("Une opération est encore en cours","An operation is still running"));return;}
     if(currentScreen==2){currentScreen=1;showBrowser(group);}
@@ -152,7 +154,48 @@ public final class MainActivity extends Activity {
     View gap=new View(this);top.addView(gap,new LinearLayout.LayoutParams(dp(8),1));
     Button search=button(t("⌕  Chercher une commande","⌕  Find a command"),false,()->showBrowser(null));
     top.addView(search,new LinearLayout.LayoutParams(0,dp(45),1f));
-    space(page,16);
+    space(page,13);
+    // Most useful remote-friendly workflows appear BEFORE the individual command catalog.
+    LinearLayout focusPanel=panel(page);
+    focusPanel.addView(text(t("⚡  ACTIONS GROUPÉES","⚡  WORKFLOWS"),15,CYAN,true));
+    space(focusPanel,5);
+    focusPanel.addView(text(t("Diagnostic complet, fluidité, réseau, audio, cache et réglages réversibles.",
+      "Full diagnostics, performance, networking, audio, caches and reversible settings."),12,MUTED,false));
+    space(focusPanel,9);
+    action(focusPanel,t("Voir les 11 actions groupées","Browse 11 workflows"),true,this::showWorkflows);
+    LinearLayout shortcuts=row();focusPanel.addView(shortcuts);
+    Button performance=button(t("Fluidité TV","Performance"),false,()->previewWorkflow(MaintenanceTasks.ALL.get(1)));
+    Button network=button(t("Réseau / DNS","Network / DNS"),false,()->previewWorkflow(MaintenanceTasks.ALL.get(3)));
+    LinearLayout.LayoutParams first=new LinearLayout.LayoutParams(0,dp(45),1f);first.rightMargin=dp(8);
+    shortcuts.addView(performance,first);shortcuts.addView(network,new LinearLayout.LayoutParams(0,dp(45),1f));
+    space(page,13);
+    LinearLayout remote=panel(page);
+    remote.addView(text(t("▣  CONTRÔLE DEPUIS UN PC OU UN SMARTPHONE","▣  CONTROL FROM PC OR PHONE"),14,CYAN,true));
+    space(remote,7);
+    remote.addView(text(t("Portail local sécurisé par un code à 8 chiffres. Copiez les résultats ou téléchargez-les en TXT.",
+      "Local 8-digit PIN portal. Copy results or download TXT reports."),12,MUTED,false));
+    space(remote,7);
+    remote.addView(text(webServer.active()?
+      t("Adresse : ","URL: ")+webServer.address():
+      t("Portail désactivé · activez-le pour afficher l’adresse.","Portal off · enable to show its address."),15,TEXT,true));
+    if(webServer.active()){
+      space(remote,4);
+      remote.addView(text(t("Code d’accès : ","Access PIN: ")+webServer.getPin(),22,0xff9ef3ed,true));
+      space(remote,4);
+      remote.addView(text(t("Ne communiquez ce code qu’aux personnes autorisées.","Only share this PIN with trusted users."),11,MUTED,false));
+      action(remote,t("Changer le code et déconnecter les navigateurs","New PIN and disconnect browsers"),false,()->{
+        webServer.regeneratePin();showHome();
+      });
+      action(remote,t("Arrêter le portail web","Stop web portal"),false,()->{
+        webServer.stop();showHome();
+      });
+    }else{
+      action(remote,t("Activer le portail sur le réseau local","Enable local web portal"),true,()->{
+        if(!webServer.start())toast(t("Port 8767 indisponible","Port 8767 unavailable"));
+        showHome();
+      });
+    }
+    space(page,13);
     page.addView(text(t("CATÉGORIES","CATEGORIES")+"  ·  "+CommandCatalog.ALL.size()+" "+t("commandes","commands"),12,CYAN,true));
     space(page,8);
     LinearLayout list=column();page.addView(list);
@@ -170,7 +213,6 @@ public final class MainActivity extends Activity {
     space(page,6);
     LinearLayout tools=panel(page);
     tools.addView(text(t("OUTILS","TOOLS"),12,CYAN,true));space(tools,7);
-    action(tools,t("⚡  Actions groupées et diagnostics","⚡  Workflows and diagnostics"),true,this::showWorkflows);
     action(tools,t("▣  Gérer les applications indésirables","▣  Manage unwanted apps"),false,()->showPackageSelection(false));
     action(tools,t("↶  Réactiver des applications","↶  Restore disabled apps"),false,()->showPackageSelection(true));
     action(tools,t("⌘  Commande personnalisée","⌘  Custom command"),false,this::customCommand);
@@ -352,6 +394,7 @@ public final class MainActivity extends Activity {
   private void runWorkflowStep(String title,String[] commands,int index,StringBuilder report,TextView status){
     if(index>=commands.length){
       workflowRunning=false;lastOk=true;lastCommand=t("Action groupée","Workflow");
+      webServer.recordLocal(title,lastCommand,report.toString(),true);
       lastOutput=report.toString();showOutput(title);return;
     }
     String raw=commands[index];
@@ -369,6 +412,7 @@ public final class MainActivity extends Activity {
         lastOutput=report.toString()+"\\n"+t(
           "Interruption après une commande refusée ou une erreur ADB. Les étapes précédentes peuvent avoir été appliquées.",
           "Stopped after a command error or ADB failure. Previous steps may already have taken effect.");
+        webServer.recordLocal(title,lastCommand,lastOutput,false);
         showOutput(title);
         return;
       }
@@ -382,7 +426,7 @@ public final class MainActivity extends Activity {
     page.addView(text(t("Exécution en cours…","Running…"),18,CYAN,true));
     page.addView(text("$ adb shell "+command,12,MUTED,false));
     client.run(port,command,(ok,output)->{
-      lastOk=ok;lastOutput=output;showOutput(title);
+      lastOk=ok;lastOutput=output;webServer.recordLocal(title,command,output,ok);showOutput(title);
     });
   }
   private void showOutput(String title){
@@ -398,6 +442,11 @@ public final class MainActivity extends Activity {
     p.addView(output);
     space(page,15);
     action(page,t("Nouvelle commande","Another command"),true,()->showBrowser(group));
+    if(webServer.active()) {
+      space(page,8);
+      page.addView(text(t("Résultat également disponible dans le portail PC / smartphone : ",
+        "Result also available in the PC / phone portal: ")+webServer.address(),12,CYAN,false));
+    }
   }
   private void settings(){
     EditText portInput=new EditText(this);portInput.setInputType(InputType.TYPE_CLASS_NUMBER);
