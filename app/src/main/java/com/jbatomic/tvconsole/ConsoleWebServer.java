@@ -26,7 +26,8 @@ final class ConsoleWebServer {
   private final AdbClient adb;
   private final java.util.function.IntSupplier adbPort;
   private final SecureRandom random=new SecureRandom();
-  private final ExecutorService requests=Executors.newFixedThreadPool(5);
+  private final ExecutorService requests=new ThreadPoolExecutor(3,5,30L,TimeUnit.SECONDS,
+    new ArrayBlockingQueue<Runnable>(32));
   private final ExecutorService execution=Executors.newSingleThreadExecutor();
   private final Handler main=new Handler(Looper.getMainLooper());
   private final Map<String,Session> sessions=new ConcurrentHashMap<>();
@@ -90,7 +91,8 @@ final class ConsoleWebServer {
         while(started){
           try{Socket s=listener.accept();
             s.setSoTimeout(16000);
-            requests.execute(()->handle(s));
+            try{requests.execute(()->handle(s));}
+            catch(RejectedExecutionException queueFull){try{s.close();}catch(IOException ignored){}}
           }catch(IOException | RejectedExecutionException e){if(started)android.util.Log.w("AtomicWeb","LAN server accept failed",e);}
         }
       },"atomic-console-lan");
@@ -276,7 +278,17 @@ final class ConsoleWebServer {
         respond(s,200,"application/json",job.json().toString(),null);return;
       }
       if(path.equals("/api/history")&&method.equals("GET")){
-        JSONArray all=new JSONArray();synchronized(history){for(int i=history.size()-1;i>=0;i--)all.put(history.get(i).json());}
+        JSONArray all=new JSONArray();
+        synchronized(history){
+          for(int i=history.size()-1;i>=0;i--){
+            Job job=history.get(i);
+            JSONObject item=new JSONObject();
+            item.put("id",job.id);item.put("title",job.title);
+            item.put("ok",job.ok);item.put("status",job.status);
+            item.put("created",job.created);
+            all.put(item);
+          }
+        }
         respond(s,200,"application/json",all.toString(),null);return;
       }
       if(path.equals("/api/export")&&method.equals("GET")){

@@ -120,7 +120,7 @@ async function loadHistory(){
  const card=el('div','history-item'),info=el('div');
  info.append(el('strong','',item.title),el('small','',new Date(item.created).toLocaleString()+' · '+(item.ok?tr('success'):tr('failure'))));
  const open=el('button','btn subtle',tr('report'));open.type='button';
- open.addEventListener('click',()=>display(item));
+ open.addEventListener('click',async()=>{try{display(await api('/api/job?id='+encodeURIComponent(item.id)))}catch(e){window.alert(e.message)}});
  const download=el('a','btn subtle','.txt');download.href='/api/export?id='+encodeURIComponent(item.id);
  download.setAttribute('download','');card.append(info,open,download);list.append(card);
  }
