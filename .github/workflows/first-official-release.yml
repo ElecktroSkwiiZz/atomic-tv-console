@@ -1,0 +1,105 @@
+name: Publier ATOMIC TV Console — Release signée
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'RELEASE_REQUEST.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  official-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier la version demandée
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(sed -nE "s/.*versionName '([^']+)'.*/\1/p" app/build.gradle | head -1)
+          requested=$(tr -d '\r\n ' < RELEASE_REQUEST.txt)
+          test -n "$requested" && test "$requested" = "v$version" || { echo "Version inconsistency"; exit 1; }
+          echo "RELEASE_TAG=$requested" >> "$GITHUB_ENV"
+      - name: Vérifier les publications existantes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists: refusing duplicate" >&2
+            exit 1
+          fi
+      - name: Configurer Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Installer Android SDK 35
+        shell: bash
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Gradle 8.10.2
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Vérifier la présence des secrets et restaurer la clé privée
+        shell: bash
+        env:
+          KEY: ${{ secrets.TV_CONSOLE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.TV_CONSOLE_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.TV_CONSOLE_KEY_PASSWORD }}
+          ALIAS: ${{ secrets.TV_CONSOLE_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY" && test -n "$STORE_PASSWORD" && test -n "$KEY_PASSWORD" && test -n "$ALIAS" || { echo "Missing signing secret(s)" >&2; exit 1; }
+          printf '%s' "$KEY" | base64 -d > "$RUNNER_TEMP/atomic-tv-console.jks"
+          test -s "$RUNNER_TEMP/atomic-tv-console.jks"
+      - name: Compiler l'APK Release officielle
+        shell: bash
+        env:
+          STORE_PASSWORD: ${{ secrets.TV_CONSOLE_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.TV_CONSOLE_KEY_PASSWORD }}
+          ALIAS: ${{ secrets.TV_CONSOLE_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --stacktrace assembleRelease \
+            -PTV_CONSOLE_KEYSTORE="$RUNNER_TEMP/atomic-tv-console.jks" \
+            -PTV_CONSOLE_STORE_PASSWORD="$STORE_PASSWORD" \
+            -PTV_CONSOLE_KEY_PASSWORD="$KEY_PASSWORD" \
+            -PTV_CONSOLE_KEY_ALIAS="$ALIAS"
+          cp app/build/outputs/apk/release/app-release.apk ATOMIC-TV-Console-AndroidTV.apk
+      - name: Vérifier APK, signature et version
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=ATOMIC-TV-Console-AndroidTV.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$APK" | tee "$RUNNER_TEMP/cert.txt"
+          actual=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "$RUNNER_TEMP/cert.txt" | tr -d ':' | tr '[:upper:]' '[:lower:]' | head -1)
+          test -n "$actual" || { echo "APK not signed" >&2; exit 1; }
+          if test -f SIGNATURE_PUBLIQUE.txt; then
+            expected=$(sed -n 's/^Certificat SHA-256 : //p' SIGNATURE_PUBLIQUE.txt | tr -d ':' | tr '[:upper:]' '[:lower:]')
+            test -n "$expected" && test "$actual" = "$expected" || { echo "Signing certificate changed" >&2; exit 1; }
+          fi
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep "package: name='com.jbatomic.tvconsole'"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | grep "versionName='1.1.0'"
+          sha256sum "$APK" > "$APK.sha256"
+      - name: Publier la Release avec son tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$RELEASE_TAG" \
+            ATOMIC-TV-Console-AndroidTV.apk ATOMIC-TV-Console-AndroidTV.apk.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "ATOMIC TV Console $RELEASE_TAG" \
+            --notes "Première Release officielle signée JB Atomic Industries. 118 commandes, 11 actions groupées, interface TV FR/EN, sélection et restauration des applications, recherche, vérification des mises à jour GitHub."
+      - name: Archiver l'APK signée
+        uses: actions/upload-artifact@v4
+        with:
+          name: ATOMIC-TV-Console-OFFICIAL-SIGNED
+          path: ATOMIC-TV-Console-AndroidTV.apk
+          if-no-files-found: error
