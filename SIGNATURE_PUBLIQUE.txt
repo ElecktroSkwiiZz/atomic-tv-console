@@ -1,0 +1,3 @@
+# Empreinte publique du certificat officiel de signature APK — JB Atomic Industries
+# Official Android APK signing certificate fingerprint (not a private key)
+Certificat SHA-256 : 89bab5a9b84c94e5497681acacb225ffb2d530d6da65a888ce503b7da4ae6925
