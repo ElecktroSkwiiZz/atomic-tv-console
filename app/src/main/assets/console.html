@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#091324"><title>ATOMIC TV Console | JB Atomic Industries</title>
+<link rel="stylesheet" href="/console.css"></head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="/" aria-label="ATOMIC TV Console">
+      <span class="brand-atom">⚛</span><span><strong>ATOMIC TV</strong><small>CONSOLE <b>· JB ATOMIC INDUSTRIES</b></small></span>
+    </a>
+    <div class="side-label" data-i18n="navigation">NAVIGATION</div>
+    <nav id="nav" class="menu" aria-label="Main navigation">
+      <button class="nav-btn selected" type="button" data-page="workflows"><span>⚡</span><span data-i18n="workflows">Actions groupées</span></button>
+      <button class="nav-btn" type="button" data-page="commands"><span>⌕</span><span data-i18n="commands">Commandes ADB</span></button>
+      <button class="nav-btn" type="button" data-page="terminal"><span>›_</span><span data-i18n="terminal">Terminal</span></button>
+      <button class="nav-btn" type="button" data-page="history"><span>▤</span><span data-i18n="history">Résultats et exports</span></button>
+    </nav>
+    <div class="side-bottom">
+      <div class="status"><i id="statusDot"></i><span id="statusText">Connexion requise</span></div>
+      <a class="publisher" href="https://jbatomic.com/" target="_blank" rel="noopener noreferrer">© JB Atomic Industries ↗</a>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <div><span class="eyebrow">ANDROID TV · LOCAL CONTROL</span><h1 id="pageTitle">Actions groupées</h1></div>
+      <div class="header-actions"><select id="language" aria-label="Language"><option value="fr">FR</option><option value="en">EN</option></select><button type="button" id="logout" class="btn subtle" data-i18n="logout">Déconnexion</button></div>
+    </header>
+    <main>
+      <section id="login" class="login-card" aria-labelledby="loginTitle">
+        <div class="login-icon">⚛</div><h2 id="loginTitle" data-i18n="loginTitle">Connexion sécurisée</h2>
+        <p data-i18n="loginHelp">Saisissez le code à 8 chiffres affiché sur votre téléviseur. Accessible uniquement sur votre réseau local.</p>
+        <form id="loginForm"><label for="pin" data-i18n="pin">Code TV</label><input id="pin" type="password" inputmode="numeric" pattern="[0-9]{8}" minlength="8" maxlength="8" required autocomplete="one-time-code" placeholder="••••••••">
+          <button class="btn primary" type="submit" data-i18n="connect">Se connecter</button></form>
+        <p class="hint" data-i18n="lanWarning">N'utilisez pas ce portail sur un réseau Wi-Fi public. Le trafic HTTP local n'est pas chiffré.</p>
+        <p id="loginError" class="error" role="alert" aria-live="polite"></p>
+      </section>
+      <div id="dashboard" hidden>
+        <div class="overview">
+          <div><strong id="metricCommands">—</strong><span data-i18n="commands">Commandes ADB</span></div>
+          <div><strong id="metricWorkflows">—</strong><span data-i18n="workflows">Actions groupées</span></div>
+          <div><strong id="metricVersion">—</strong><span>VERSION</span></div>
+        </div>
+        <section id="page-workflows" class="page">
+          <div class="section-head"><div><h2 data-i18n="workflowTitle">Optimisation et diagnostic</h2><p data-i18n="workflowLead">Exécutez plusieurs commandes dans un ordre contrôlé. Les réglages sont signalés avant lancement.</p></div></div>
+          <div class="cards" id="workflowList"></div>
+        </section>
+        <section id="page-commands" class="page" hidden>
+          <div class="section-head"><div><h2 data-i18n="catalogTitle">Toutes les commandes</h2><p data-i18n="catalogLead">Recherchez une commande ou filtrez par catégorie.</p></div></div>
+          <div class="filters"><input id="search" type="search" autocomplete="off" data-placeholder-fr="Rechercher une commande…" data-placeholder-en="Search commands…" placeholder="Rechercher une commande…"><select id="category" aria-label="Category"><option value="all">Toutes les catégories</option></select></div>
+          <div id="commandList" class="command-list"></div><p id="commandCount" class="hint"></p>
+        </section>
+        <section id="page-terminal" class="page" hidden>
+          <div class="section-head"><div><h2 data-i18n="terminalTitle">Terminal ADB</h2><p data-i18n="terminalLead">Saisissez une commande adb shell. Les opérations personnalisées exigent une confirmation.</p></div></div>
+          <form id="terminalForm" class="terminal-form">
+            <label for="terminalInput" data-i18n="shellCommand">Commande Android shell</label>
+            <div class="terminal-input"><span>$ adb shell</span><input id="terminalInput" type="text" maxlength="450" required spellcheck="false" autocomplete="off" placeholder="getprop ro.product.model"></div>
+            <button type="submit" class="btn primary" data-i18n="run">Exécuter</button>
+          </form>
+          <p class="hint" data-i18n="terminalWarning">⚠ Les commandes personnalisées utilisent les permissions ADB de la TV. Vérifiez chaque commande.</p>
+        </section>
+        <section id="page-history" class="page" hidden>
+          <div class="section-head"><div><h2 data-i18n="historyTitle">Historique des résultats</h2><p data-i18n="historyLead">Récupérez les sorties dans un fichier TXT ou copiez-les sur votre ordinateur.</p></div><button id="refresh" type="button" class="btn subtle" data-i18n="refresh">Actualiser</button></div>
+          <div id="historyList" class="history-list"></div>
+        </section>
+        <section id="resultPanel" class="result-panel" hidden aria-live="polite">
+          <div class="result-head"><div><span id="resultState" class="pill">EN COURS</span><h2 id="resultTitle">Résultat</h2></div><div class="result-actions">
+            <button id="copy" type="button" class="btn subtle" data-i18n="copy">Copier</button>
+            <a id="download" class="btn subtle" href="#" download data-i18n="download">Télécharger .txt</a>
+          </div></div>
+          <pre id="resultOutput"></pre>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="/console.js" defer></script>
+</body></html>
