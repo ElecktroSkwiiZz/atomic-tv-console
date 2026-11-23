@@ -43,6 +43,10 @@ jobs:
           grep -q 'private boolean validHost' app/src/main/java/com/jbatomic/tvconsole/ConsoleWebServer.java
           grep -q 'private boolean sameOrigin' app/src/main/java/com/jbatomic/tvconsole/ConsoleWebServer.java
           grep -q 'recordLocal(' app/src/main/java/com/jbatomic/tvconsole/ConsoleWebServer.java
+      - name: Generate readable Android TV launcher branding
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check 'Pillow==11.3.0'
+          python3 branding/render_launcher.py
       - name: Build debug APK
         if: "!startsWith(github.ref, 'refs/tags/v')"
         run: gradle --no-daemon --stacktrace assembleDebug
