@@ -62,7 +62,7 @@ jobs:
           if-no-files-found: error
 
       - name: Validate release tag
-        if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'release: publish signed atomic-tv-console v1.2.2')
+        if: "${{ startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'release: publish signed atomic-tv-console v1.2.2 retry') }}"
         shell: bash
         run: |
           version=$(sed -nE "s/.*versionName '([^']+)'.*/\1/p" app/build.gradle | head -1)
@@ -70,7 +70,7 @@ jobs:
           if [ "$GITHUB_REF_TYPE" != "tag" ]; then expected_ref="v1.2.2"; fi
           test "$expected_ref" = "v$version" || { echo "Tag/version mismatch" >&2; exit 1; }
       - name: Restore private APK signing key
-        if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'release: publish signed atomic-tv-console v1.2.2')
+        if: "${{ startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'release: publish signed atomic-tv-console v1.2.2 retry') }}"
         shell: bash
         env:
           KEY: ${{ secrets.TV_CONSOLE_KEYSTORE_BASE64 }}
@@ -81,7 +81,7 @@ jobs:
           test -n "$KEY" && test -n "$STORE_PASSWORD" && test -n "$KEY_PASSWORD" && test -n "$ALIAS" || { echo "Official release signing secrets missing" >&2; exit 1; }
           printf '%s' "$KEY" | base64 -d > "$RUNNER_TEMP/atomic-tv-console.jks"
       - name: Build signed release
-        if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'release: publish signed atomic-tv-console v1.2.2')
+        if: "${{ startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'release: publish signed atomic-tv-console v1.2.2 retry') }}"
         shell: bash
         env:
           STORE_PASSWORD: ${{ secrets.TV_CONSOLE_STORE_PASSWORD }}
@@ -103,7 +103,7 @@ jobs:
           fi
           sha256sum ATOMIC-TV-Console-AndroidTV.apk > ATOMIC-TV-Console-AndroidTV.apk.sha256
       - name: Publish official GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'release: publish signed atomic-tv-console v1.2.2')
+        if: "${{ startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'release: publish signed atomic-tv-console v1.2.2 retry') }}"
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -113,7 +113,7 @@ jobs:
           gh release create "$TAG" ATOMIC-TV-Console-AndroidTV.apk ATOMIC-TV-Console-AndroidTV.apk.sha256 \
             --title "ATOMIC TV Console $TAG" --generate-notes --target "$GITHUB_SHA"
       - name: Save signed APK
-        if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'release: publish signed atomic-tv-console v1.2.2')
+        if: "${{ startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && github.event.head_commit.message == 'release: publish signed atomic-tv-console v1.2.2 retry') }}"
         uses: actions/upload-artifact@v4
         with:
           name: ATOMIC-TV-Console-RELEASE-SIGNED
